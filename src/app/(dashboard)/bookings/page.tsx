@@ -79,9 +79,9 @@ export default async function BookingsPage({ searchParams }: PageProps) {
         ))}
       </div>
 
-      <div className="overflow-x-auto rounded-lg border">
+      <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
         <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-left">
+          <thead className="bg-muted/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-4 py-2.5 font-medium">Booking</th>
               <th className="px-4 py-2.5 font-medium">Customer</th>

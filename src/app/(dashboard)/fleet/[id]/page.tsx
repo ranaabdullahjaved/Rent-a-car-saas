@@ -73,7 +73,7 @@ export default async function VehicleDetailPage({ params }: Props) {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-lg border p-5">
+        <section className="rounded-xl border bg-card p-5 shadow-sm">
           <h2 className="mb-2 text-sm font-medium">Specification</h2>
           <dl className="divide-y">
             <Detail label="Colour" value={v.colour} />
@@ -87,7 +87,7 @@ export default async function VehicleDetailPage({ params }: Props) {
         </section>
 
         <div className="flex flex-col gap-4">
-          <section className="rounded-lg border p-5">
+          <section className="rounded-xl border bg-card p-5 shadow-sm">
             <h2 className="mb-2 text-sm font-medium">Notes</h2>
             <p className="text-sm text-muted-foreground">
               {v.notes || 'Nothing recorded for this vehicle.'}

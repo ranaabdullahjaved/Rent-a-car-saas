@@ -121,7 +121,7 @@ export default async function BookingDetailPage({ params }: Props) {
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-lg border p-5">
+        <section className="rounded-xl border bg-card p-5 shadow-sm">
           <h2 className="mb-2 text-sm font-medium">Booking</h2>
           <dl className="divide-y">
             <Detail
@@ -158,7 +158,7 @@ export default async function BookingDetailPage({ params }: Props) {
         </section>
 
         <div className="flex flex-col gap-4">
-          <section className="rounded-lg border p-5">
+          <section className="rounded-xl border bg-card p-5 shadow-sm">
             <h2 className="mb-2 text-sm font-medium">Money</h2>
             <dl className="divide-y">
               <Detail label="Daily rate" value={formatPKR(money(b.dailyRate))} />
@@ -178,7 +178,7 @@ export default async function BookingDetailPage({ params }: Props) {
           </section>
 
           {charges.length > 0 && (
-            <section className="rounded-lg border p-5">
+            <section className="rounded-xl border bg-card p-5 shadow-sm">
               <h2 className="mb-2 text-sm font-medium">Charges</h2>
               <ul className="divide-y text-sm">
                 {charges.map((c) => (
@@ -197,7 +197,7 @@ export default async function BookingDetailPage({ params }: Props) {
           )}
 
           {bookingPayments.length > 0 && (
-            <section className="rounded-lg border p-5">
+            <section className="rounded-xl border bg-card p-5 shadow-sm">
               <h2 className="mb-2 text-sm font-medium">Payments received</h2>
               <ul className="divide-y text-sm">
                 {bookingPayments.map((p) => (
@@ -218,7 +218,7 @@ export default async function BookingDetailPage({ params }: Props) {
           )}
 
           {promises.length > 0 && (
-            <section className="rounded-lg border p-5">
+            <section className="rounded-xl border bg-card p-5 shadow-sm">
               <h2 className="mb-2 text-sm font-medium">Promises to pay</h2>
               <ul className="divide-y text-sm">
                 {promises.map((pr) => (
@@ -235,7 +235,7 @@ export default async function BookingDetailPage({ params }: Props) {
           )}
 
           {damages.length > 0 && (
-            <section className="rounded-lg border p-5">
+            <section className="rounded-xl border bg-card p-5 shadow-sm">
               <h2 className="mb-2 text-sm font-medium">Damage</h2>
               <ul className="divide-y text-sm">
                 {damages.map((d) => {
@@ -264,7 +264,7 @@ export default async function BookingDetailPage({ params }: Props) {
           )}
 
           {challans.length > 0 && (
-            <section className="rounded-lg border p-5">
+            <section className="rounded-xl border bg-card p-5 shadow-sm">
               <h2 className="mb-2 text-sm font-medium">Traffic challans</h2>
               <ul className="divide-y text-sm">
                 {challans.map((c) => (
@@ -295,11 +295,11 @@ export default async function BookingDetailPage({ params }: Props) {
       </div>
 
       {handovers.length > 0 && (
-        <section className="mt-4 rounded-lg border p-5">
+        <section className="mt-4 rounded-xl border bg-card p-5 shadow-sm">
           <h2 className="mb-3 text-sm font-medium">Handovers</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {handovers.map((h) => (
-              <div key={String(h.id)} className="rounded-md border p-4">
+              <div key={String(h.id)} className="rounded-lg border bg-background p-4">
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="text-sm font-medium">
                     {h.handoverType === 'checkout' ? 'Checked out' : 'Checked in'}

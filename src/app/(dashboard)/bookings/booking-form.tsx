@@ -104,7 +104,7 @@ export function BookingForm({ customers }: { customers: Customer[] }) {
 
   return (
     <form onSubmit={onSubmit} className="max-w-3xl">
-      <section className="rounded-lg border p-5">
+      <section className="rounded-xl border bg-card p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-medium">Customer and dates</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Customer">
@@ -184,7 +184,7 @@ export function BookingForm({ customers }: { customers: Customer[] }) {
         </div>
       </section>
 
-      <section className="mt-4 rounded-lg border p-5">
+      <section className="mt-4 rounded-xl border bg-card p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between gap-4">
           <h2 className="text-sm font-medium">Vehicle</h2>
           <Button
@@ -234,7 +234,7 @@ export function BookingForm({ customers }: { customers: Customer[] }) {
         </div>
       </section>
 
-      <section className="mt-4 rounded-lg border p-5">
+      <section className="mt-4 rounded-xl border bg-card p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-medium">Pricing</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Daily rate (PKR)">
@@ -315,7 +315,7 @@ export function BookingForm({ customers }: { customers: Customer[] }) {
         )}
       </section>
 
-      <section className="mt-4 rounded-lg border p-5">
+      <section className="mt-4 rounded-xl border bg-card p-5 shadow-sm">
         <Field label="Notes">
           <textarea
             name="notes"

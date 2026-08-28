@@ -63,7 +63,7 @@ export function AgreementForm({
   if (!open) return <Button onClick={() => setOpen(true)}>Add agreement</Button>
 
   return (
-    <form onSubmit={onSubmit} className="mt-4 w-full rounded-lg border p-5">
+    <form onSubmit={onSubmit} className="mt-4 w-full rounded-xl border bg-card p-5 shadow-sm">
       <h2 className="mb-4 text-sm font-medium">New agreement</h2>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Vehicle">

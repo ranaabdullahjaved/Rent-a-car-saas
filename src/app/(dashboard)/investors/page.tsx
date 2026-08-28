@@ -42,7 +42,7 @@ export default async function InvestorsPage() {
           {investors.map((inv) => {
             const theirs = byInvestor.get(String(inv.id)) ?? []
             return (
-              <section key={String(inv.id)} className="rounded-lg border p-5">
+              <section key={String(inv.id)} className="rounded-xl border bg-card p-5 shadow-sm">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <Link

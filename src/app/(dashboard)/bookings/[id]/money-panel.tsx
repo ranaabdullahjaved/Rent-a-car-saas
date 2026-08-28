@@ -73,7 +73,7 @@ export function MoneyPanel({ bookingId, balanceDue }: { bookingId: string; balan
   ]
 
   return (
-    <section className="rounded-lg border p-5">
+    <section className="rounded-xl border bg-card p-5 shadow-sm">
       <div className="mb-4 flex flex-wrap gap-1">
         {tabs.map((t) => (
           <button

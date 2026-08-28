@@ -32,7 +32,7 @@ function Skeleton({ rows = 3 }: { rows?: number }) {
 
 function Panel({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border p-5">
+    <section className="rounded-xl border bg-card p-5 shadow-sm">
       <div className="mb-3">
         <h2 className="text-sm font-medium">{title}</h2>
         {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
@@ -71,7 +71,7 @@ async function CashPosition({ tenantId, period }: { tenantId: bigint; period: Pe
   return (
     <div className="grid gap-3 sm:grid-cols-3">
       {stats.map((s) => (
-        <div key={s.label} className="rounded-lg border p-4">
+        <div key={s.label} className="rounded-xl border bg-card p-4 shadow-sm">
           <div className="text-xs text-muted-foreground">{s.label}</div>
           <div className="mt-1 text-xl font-medium tabular-nums">{formatPKR(s.value)}</div>
           <div className="mt-0.5">
@@ -138,9 +138,9 @@ async function VehicleProfitability({ tenantId, period }: { tenantId: bigint; pe
       <p className="mb-3 text-xs text-muted-foreground">
         Fleet utilisation {utilisation}% — days earning against days available.
       </p>
-      <div className="overflow-x-auto rounded-md border">
+      <div className="overflow-x-auto rounded-lg border bg-card">
         <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-left">
+          <thead className="bg-muted/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-3 py-2 font-medium">Vehicle</th>
               <th className="px-3 py-2 font-medium">Owner</th>

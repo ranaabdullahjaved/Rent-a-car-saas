@@ -89,7 +89,7 @@ export default async function CustomerDetailPage({ params }: Props) {
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-lg border p-5">
+        <section className="rounded-xl border bg-card p-5 shadow-sm">
           <h2 className="mb-2 text-sm font-medium">Identity and contact</h2>
           <dl className="divide-y">
             <Detail label="CNIC" value={formatCnic(c.cnic)} />
@@ -102,7 +102,7 @@ export default async function CustomerDetailPage({ params }: Props) {
         </section>
 
         <div className="flex flex-col gap-4">
-          <section className="rounded-lg border p-5">
+          <section className="rounded-xl border bg-card p-5 shadow-sm">
             <h2 className="mb-2 text-sm font-medium">Licence and reference</h2>
             <dl className="divide-y">
               <Detail label="Licence number" value={c.licenseNo} />
@@ -121,7 +121,7 @@ export default async function CustomerDetailPage({ params }: Props) {
             </dl>
           </section>
 
-          <section className="rounded-lg border p-5">
+          <section className="rounded-xl border bg-card p-5 shadow-sm">
             <h2 className="mb-2 text-sm font-medium">Notes</h2>
             <p className="text-sm text-muted-foreground">
               {c.notes || 'Nothing recorded for this customer.'}

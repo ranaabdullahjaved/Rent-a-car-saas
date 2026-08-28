@@ -81,7 +81,7 @@ export function VehicleForm({ investors, initial }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="max-w-3xl">
-      <section className="rounded-lg border p-5">
+      <section className="rounded-xl border bg-card p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-medium">Identity</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Registration number">
@@ -133,7 +133,7 @@ export function VehicleForm({ investors, initial }: Props) {
         </div>
       </section>
 
-      <section className="mt-4 rounded-lg border p-5">
+      <section className="mt-4 rounded-xl border bg-card p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-medium">Ownership</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Owned by">
@@ -175,7 +175,7 @@ export function VehicleForm({ investors, initial }: Props) {
         </div>
       </section>
 
-      <section className="mt-4 rounded-lg border p-5">
+      <section className="mt-4 rounded-xl border bg-card p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-medium">Specification</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Transmission">

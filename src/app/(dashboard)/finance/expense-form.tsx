@@ -66,7 +66,7 @@ export function ExpenseForm({ options }: { options: Options }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="w-full rounded-lg border p-5">
+    <form onSubmit={onSubmit} className="w-full rounded-xl border bg-card p-5 shadow-sm">
       <h2 className="mb-4 text-sm font-medium">Record an expense</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Field label="Category">

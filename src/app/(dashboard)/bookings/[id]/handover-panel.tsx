@@ -135,7 +135,7 @@ export function HandoverPanel({
   }
 
   return (
-    <section className="rounded-lg border p-5">
+    <section className="rounded-xl border bg-card p-5 shadow-sm">
       <h2 className="mb-1 text-sm font-medium">
         {stage === 'checkout' ? 'Check out' : 'Check in'}
       </h2>

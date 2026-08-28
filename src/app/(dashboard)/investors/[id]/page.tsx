@@ -63,7 +63,7 @@ export default async function InvestorDetailPage({ params, searchParams }: Props
         }
       />
 
-      <section className="rounded-lg border p-5">
+      <section className="rounded-xl border bg-card p-5 shadow-sm">
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
           <h2 className="text-sm font-medium">Statement</h2>
           <form className="flex flex-wrap items-center gap-2 text-sm">
@@ -92,9 +92,9 @@ export default async function InvestorDetailPage({ params, searchParams }: Props
           </p>
         ) : (
           <>
-            <div className="overflow-x-auto rounded-md border">
+            <div className="overflow-x-auto rounded-lg border bg-card">
               <table className="w-full text-sm">
-                <thead className="bg-muted/50 text-left">
+                <thead className="bg-muted/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
                     <th className="px-3 py-2 font-medium">Vehicle</th>
                     <th className="px-3 py-2 font-medium">Terms</th>
@@ -143,7 +143,7 @@ export default async function InvestorDetailPage({ params, searchParams }: Props
         )}
       </section>
 
-      <section className="mt-4 rounded-lg border p-5">
+      <section className="mt-4 rounded-xl border bg-card p-5 shadow-sm">
         <div className="mb-3 flex items-center justify-between gap-4">
           <h2 className="text-sm font-medium">Agreements</h2>
         </div>

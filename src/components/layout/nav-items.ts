@@ -1,16 +1,28 @@
+import {
+  Banknote,
+  Calendar,
+  Car,
+  Gauge,
+  Landmark,
+  Settings,
+  Users,
+  Wrench,
+  type LucideIcon,
+} from 'lucide-react'
+
 export type NavItem = {
   label: string
   href: string
+  icon: LucideIcon
 }
 
 export const navItems: NavItem[] = [
-  { label: 'Dashboard', href: '/' },
-  { label: 'Bookings', href: '/bookings' },
-  { label: 'Fleet', href: '/fleet' },
-  { label: 'Customers', href: '/customers' },
-  { label: 'Finance', href: '/finance' },
-  { label: 'Investors', href: '/investors' },
-  { label: 'Maintenance', href: '/maintenance' },
-  { label: 'Reports', href: '/reports' },
-  { label: 'Settings', href: '/settings' },
+  { label: 'Dashboard', href: '/', icon: Gauge },
+  { label: 'Bookings', href: '/bookings', icon: Calendar },
+  { label: 'Fleet', href: '/fleet', icon: Car },
+  { label: 'Customers', href: '/customers', icon: Users },
+  { label: 'Finance', href: '/finance', icon: Banknote },
+  { label: 'Investors', href: '/investors', icon: Landmark },
+  { label: 'Maintenance', href: '/maintenance', icon: Wrench },
+  { label: 'Settings', href: '/settings', icon: Settings },
 ]

@@ -34,7 +34,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           userName={context?.userName ?? ''}
           userEmail={context?.userEmail ?? ''}
         />
-        <main className="min-w-0 flex-1">{children}</main>
+        <main className="min-w-0 flex-1 bg-background">{children}</main>
       </div>
     </div>
   )

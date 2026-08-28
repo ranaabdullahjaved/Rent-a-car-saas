@@ -96,7 +96,7 @@ export function CustomerForm({ initial }: { initial?: CustomerFormValues }) {
 
   return (
     <form ref={setFormEl} onSubmit={onSubmit} className="max-w-3xl">
-      <section className="rounded-lg border p-5">
+      <section className="rounded-xl border bg-card p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-medium">Identity</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Full name">
@@ -129,7 +129,7 @@ export function CustomerForm({ initial }: { initial?: CustomerFormValues }) {
         </div>
       </section>
 
-      <section className="mt-4 rounded-lg border p-5">
+      <section className="mt-4 rounded-xl border bg-card p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-medium">Contact</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Phone">
@@ -159,7 +159,7 @@ export function CustomerForm({ initial }: { initial?: CustomerFormValues }) {
         </div>
       </section>
 
-      <section className="mt-4 rounded-lg border p-5">
+      <section className="mt-4 rounded-xl border bg-card p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-medium">Driving licence and reference</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Licence number">
@@ -177,7 +177,7 @@ export function CustomerForm({ initial }: { initial?: CustomerFormValues }) {
         </div>
       </section>
 
-      <section className="mt-4 rounded-lg border p-5">
+      <section className="mt-4 rounded-xl border bg-card p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-medium">Risk</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Rating">
