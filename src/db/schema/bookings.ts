@@ -1,6 +1,7 @@
+import { sql } from 'drizzle-orm'
 import {
   pgTable, bigserial, bigint, text, numeric, integer,
-  boolean, timestamp, customType
+  boolean, timestamp, customType, uniqueIndex
 } from 'drizzle-orm/pg-core'
 import { tenants } from './tenants'
 import { vehicles } from './vehicles'
@@ -69,7 +70,15 @@ export const bookings = pgTable('bookings', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
-})
+}, (t) => [
+  // Booking numbers are read out over the phone, so two bookings sharing one
+  // is a real operational problem. The number is allocated by reading the
+  // current maximum, which two concurrent requests can both read; this is what
+  // makes the service's retry loop correct rather than hopeful.
+  uniqueIndex('bookings_tenant_booking_no_unique')
+    .on(t.tenantId, t.bookingNo)
+    .where(sql`${t.deletedAt} is null`),
+])
 
 export const bookingCharges = pgTable('booking_charges', {
   id: bigserial('id', { mode: 'bigint' }).primaryKey(),

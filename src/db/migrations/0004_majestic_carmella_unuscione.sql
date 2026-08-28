@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "bookings_tenant_booking_no_unique" ON "bookings" USING btree ("tenant_id","booking_no") WHERE "bookings"."deleted_at" is null;
