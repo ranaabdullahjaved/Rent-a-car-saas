@@ -1,17 +1,30 @@
 import type { Metadata } from 'next'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 import { db } from '@/db/client'
-import { users } from '@/db/schema'
+import { notificationRules, users } from '@/db/schema'
 import { PageHeader } from '@/components/shared/page-header'
 import { can } from '@/lib/permissions'
 import { requireTenantOrRedirect } from '@/lib/tenant'
 import { TeamPanel } from './team-panel'
+import { AlertsPanel } from './alerts-panel'
+import { effectiveRules } from '@/lib/modules/alerts/alert.rules'
 
 export const metadata: Metadata = { title: 'Settings' }
 
 export default async function SettingsPage() {
   const ctx = await requireTenantOrRedirect()
   const manageTeam = can(ctx.role, 'team.manage')
+
+  const storedRules = await db
+    .select({
+      ruleKey: notificationRules.ruleKey,
+      enabled: notificationRules.enabled,
+      offsetMinutes: notificationRules.offsetMinutes,
+      channels: notificationRules.channels,
+    })
+    .from(notificationRules)
+    .where(eq(notificationRules.tenantId, ctx.tenantId))
+  const rules = effectiveRules(storedRules)
 
   const members = manageTeam
     ? await db
@@ -32,6 +45,11 @@ export default async function SettingsPage() {
       <PageHeader title="Settings" description="Your workspace, team and defaults." />
 
       <div className="flex max-w-3xl flex-col gap-4">
+        {can(ctx.role, 'settings.manage') && (
+          <AlertsPanel
+            rules={rules.map((r) => ({ key: r.key, enabled: r.enabled, offsetMinutes: r.offsetMinutes }))}
+          />
+        )}
         {manageTeam ? (
           <TeamPanel
             members={members.map((m) => ({

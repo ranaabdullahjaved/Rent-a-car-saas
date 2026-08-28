@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { CarFront, LogOut, Menu, X } from 'lucide-react'
 import { navItems } from './nav-items'
+import { NotificationsBell } from './notifications-bell'
 import { ThemeToggle } from './theme-toggle'
 import { signOut } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
@@ -56,6 +57,7 @@ export function Topbar({ tenantName, userName, userEmail }: TopbarProps) {
         </div>
 
         <div className="flex items-center gap-1.5">
+          <NotificationsBell />
           <ThemeToggle />
           <div className="mx-1 hidden h-6 w-px bg-border sm:block" />
           <div className="hidden items-center gap-2.5 sm:flex">
