@@ -41,6 +41,15 @@ export const auth = betterAuth({
     // preview deployments, which get a fresh URL each time) — without it,
     // auth would only work on whichever domain BETTER_AUTH_URL points to.
     ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
+    // The stable production domain, which VERCEL_URL is not — that one is
+    // the per-deployment hostname even on production builds.
+    ...(process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? [`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`]
+      : []),
+    // Any localhost port in development. Without this, running the app on
+    // anything other than the port BETTER_AUTH_URL names fails every auth
+    // request with "Invalid origin". Never enabled in production.
+    ...(process.env.NODE_ENV === 'production' ? [] : ['http://localhost:*']),
   ],
   advanced: {
     database: {

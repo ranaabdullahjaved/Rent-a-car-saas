@@ -1,10 +1,18 @@
+import type { Metadata } from 'next'
+import { RegisterForm } from './register-form'
+
+export const metadata: Metadata = { title: 'Create your workspace' }
+
 export default function RegisterPage() {
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-medium mb-2">Create your account</h1>
-      <p className="text-muted-foreground">
-        Tenant sign-up and organization creation via Better Auth will be built here.
-      </p>
+    <div className="w-full max-w-md rounded-lg border bg-background p-6 shadow-sm">
+      <div className="mb-6">
+        <h1 className="text-xl font-medium">Create your workspace</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Set up your rent-a-car business. You can add vehicles and staff next.
+        </p>
+      </div>
+      <RegisterForm />
     </div>
   )
 }
