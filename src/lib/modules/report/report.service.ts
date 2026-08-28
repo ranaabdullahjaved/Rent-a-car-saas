@@ -1,6 +1,6 @@
 import { and, eq, gte, isNull, lt, lte, sql } from 'drizzle-orm'
 import { db } from '@/db/client'
-import { bookings, investors, ledgerEntries, vehicles } from '@/db/schema'
+import { bookings, customers, investors, ledgerEntries, vehicles } from '@/db/schema'
 import { ZERO, addMoney, money, subtractMoney } from '@/lib/money'
 import type { Money } from '@/lib/money'
 import type { Period } from './report.periods'
@@ -210,4 +210,67 @@ export async function getOperationsToday(tenantId: bigint): Promise<OperationsTo
     available: byStatus.available ?? 0,
     inMaintenance: byStatus.maintenance ?? 0,
   }
+}
+
+export type AgeingBucket = 'current' | 'd1_30' | 'd31_60' | 'd61_90' | 'd90_plus'
+
+export type CustomerAgeing = {
+  customerId: bigint
+  customerName: string
+  phone: string
+  total: Money
+  buckets: Record<AgeingBucket, Money>
+}
+
+/**
+ * Outstanding balances bucketed by how long they have been owed, per
+ * customer — "how bad are my collections". Age runs from the booking's
+ * scheduled end: the money became collectable when the car came back.
+ */
+export async function getReceivablesAgeing(tenantId: bigint): Promise<CustomerAgeing[]> {
+  const rows = await db
+    .select({
+      customerId: bookings.customerId,
+      customerName: customers.fullName,
+      phone: customers.phone,
+      balance: sql<string>`(${bookings.totalCharges} - ${bookings.totalPaid})::text`,
+      endAt: bookings.endAt,
+    })
+    .from(bookings)
+    .innerJoin(customers, eq(customers.id, bookings.customerId))
+    .where(
+      and(
+        eq(bookings.tenantId, tenantId),
+        isNull(bookings.deletedAt),
+        sql`${bookings.status} != 'cancelled'`,
+        sql`${bookings.totalCharges} > ${bookings.totalPaid}`
+      )
+    )
+
+  const now = Date.now()
+  const byCustomer = new Map<string, CustomerAgeing>()
+
+  for (const r of rows) {
+    const key = String(r.customerId)
+    const entry =
+      byCustomer.get(key) ??
+      ({
+        customerId: r.customerId,
+        customerName: r.customerName,
+        phone: r.phone,
+        total: ZERO,
+        buckets: { current: ZERO, d1_30: ZERO, d31_60: ZERO, d61_90: ZERO, d90_plus: ZERO },
+      } satisfies CustomerAgeing)
+
+    const days = Math.floor((now - r.endAt.getTime()) / 86_400_000)
+    const bucket: AgeingBucket =
+      days <= 0 ? 'current' : days <= 30 ? 'd1_30' : days <= 60 ? 'd31_60' : days <= 90 ? 'd61_90' : 'd90_plus'
+
+    const amount = money(r.balance)
+    entry.buckets[bucket] = addMoney(entry.buckets[bucket], amount)
+    entry.total = addMoney(entry.total, amount)
+    byCustomer.set(key, entry)
+  }
+
+  return [...byCustomer.values()].sort((a, b) => Number(b.total) - Number(a.total))
 }

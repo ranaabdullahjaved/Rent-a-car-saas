@@ -5,6 +5,8 @@ import * as paymentService from '@/lib/modules/finance/payment.service'
 import { listLedgerEntries } from '@/lib/modules/finance/ledger.service'
 import * as expenseService from '@/lib/modules/finance/expense.service'
 import * as vendorService from '@/lib/modules/vendor/vendor.service'
+import { getReceivablesAgeing } from '@/lib/modules/report/report.service'
+import { Download } from 'lucide-react'
 import { categoryLabel } from '@/lib/modules/finance/ledger.categories'
 import { ZERO, addMoney, formatPKR, money, subtractMoney, type Money } from '@/lib/money'
 import { requireTenantOrRedirect } from '@/lib/tenant'
@@ -25,11 +27,15 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
   )
 }
 
-export default async function FinancePage() {
+type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> }
+
+export default async function FinancePage({ searchParams }: PageProps) {
   const { tenantId, role } = await requireTenantOrRedirect()
   if (!can(role, 'reports.view')) return <AccessDenied what="finance" />
+  const raw = await searchParams
+  const categoryFilter = typeof raw.category === 'string' && raw.category ? raw.category : null
 
-  const [entries, receivables, expenseRows, options, outsourcing, outsourcingSummary] =
+  const [entries, receivables, expenseRows, options, outsourcing, outsourcingSummary, ageing] =
     await Promise.all([
       listLedgerEntries(tenantId, 100),
       paymentService.getReceivables(tenantId),
@@ -37,7 +43,9 @@ export default async function FinancePage() {
       expenseService.getExpenseFormOptions(tenantId),
       vendorService.getOutsourcingLedger(tenantId),
       vendorService.getOutsourcingSummary(tenantId),
+      getReceivablesAgeing(tenantId),
     ])
+  const visibleEntries = categoryFilter ? entries.filter((e) => e.category === categoryFilter) : entries
 
   // Totals are summed through the Money type rather than by casting to number,
   // for the same reason the columns are numeric in the first place.
@@ -94,10 +102,17 @@ export default async function FinancePage() {
           <h2 className="mb-3 text-sm font-medium">By category</h2>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {ranked.map(([cat, amount]) => (
-              <div key={cat} className="flex items-baseline justify-between gap-3 rounded-md border px-3 py-2 text-sm">
+              <Link
+                key={cat}
+                href={categoryFilter === cat ? '/finance' : `/finance?category=${cat}`}
+                className={cn(
+                  'hover-lift flex items-baseline justify-between gap-3 rounded-md border px-3 py-2 text-sm',
+                  categoryFilter === cat && 'border-primary bg-primary/5'
+                )}
+              >
                 <span>{categoryLabel(cat)}</span>
                 <span className="tabular-nums">{formatPKR(amount)}</span>
-              </div>
+              </Link>
             ))}
           </div>
         </section>
@@ -208,8 +223,85 @@ export default async function FinancePage() {
         </section>
       )}
 
+      {ageing.length > 0 && (
+        <section className="mt-6">
+          <h2 className="mb-1 text-sm font-medium">Who owes you</h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Outstanding balances by how long they have been owed, oldest exposure first.
+          </p>
+          <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">Customer</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Not due</th>
+                  <th className="px-4 py-2.5 text-right font-medium">1–30 d</th>
+                  <th className="px-4 py-2.5 text-right font-medium">31–60 d</th>
+                  <th className="px-4 py-2.5 text-right font-medium">61–90 d</th>
+                  <th className="px-4 py-2.5 text-right font-medium">90+ d</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ageing.map((a) => (
+                  <tr key={String(a.customerId)} className="border-t">
+                    <td className="px-4 py-2.5">
+                      <Link href={`/customers/${a.customerId}`} className="underline-offset-4 hover:underline">
+                        {a.customerName}
+                      </Link>
+                      <span className="block text-xs tabular-nums text-muted-foreground">{a.phone}</span>
+                    </td>
+                    {(['current', 'd1_30', 'd31_60', 'd61_90', 'd90_plus'] as const).map((b) => (
+                      <td
+                        key={b}
+                        className={cn(
+                          'px-4 py-2.5 text-right tabular-nums',
+                          Number(a.buckets[b]) === 0 && 'text-muted-foreground/40',
+                          (b === 'd61_90' || b === 'd90_plus') && Number(a.buckets[b]) > 0 && 'text-destructive'
+                        )}
+                      >
+                        {Number(a.buckets[b]) === 0 ? '—' : formatPKR(a.buckets[b])}
+                      </td>
+                    ))}
+                    <td className="px-4 py-2.5 text-right font-medium tabular-nums">{formatPKR(a.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       <section className="mt-6">
-        <h2 className="mb-3 text-sm font-medium">Ledger</h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-sm font-medium">
+            Ledger
+            {categoryFilter && (
+              <>
+                {' '}
+                <span className="text-muted-foreground">· {categoryLabel(categoryFilter)} only</span>{' '}
+                <Link href="/finance" className="text-xs text-primary underline underline-offset-4">
+                  clear
+                </Link>
+              </>
+            )}
+          </h2>
+          <div className="flex gap-2">
+            {[
+              ['ledger', 'Ledger'],
+              ['expenses', 'Expenses'],
+              ['vehicles', 'Vehicle profit'],
+            ].map(([what, label]) => (
+              <a
+                key={what}
+                href={`/api/export?what=${what}`}
+                className="flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <Download className="size-3.5" /> {label} CSV
+              </a>
+            ))}
+          </div>
+        </div>
         <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-muted/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -222,7 +314,7 @@ export default async function FinancePage() {
               </tr>
             </thead>
             <tbody>
-              {entries.length === 0 ? (
+              {visibleEntries.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
                     Nothing yet. The ledger fills up as payments are recorded against{' '}
@@ -233,7 +325,7 @@ export default async function FinancePage() {
                   </td>
                 </tr>
               ) : (
-                entries.map((e) => (
+                visibleEntries.map((e) => (
                   <tr key={String(e.id)} className={cn('border-t', e.isReversal && 'opacity-60')}>
                     <td className="px-4 py-2.5 tabular-nums">{e.entryDate}</td>
                     <td className="px-4 py-2.5">
@@ -270,7 +362,7 @@ export default async function FinancePage() {
             </tbody>
           </table>
         </div>
-        {entries.length === 100 && (
+        {visibleEntries.length === 100 && (
           <p className="mt-3 text-xs text-muted-foreground">Showing the 100 most recent entries.</p>
         )}
       </section>
