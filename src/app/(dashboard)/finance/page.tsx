@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/shared/page-header'
 import * as paymentService from '@/lib/modules/finance/payment.service'
 import { listLedgerEntries } from '@/lib/modules/finance/ledger.service'
 import * as expenseService from '@/lib/modules/finance/expense.service'
+import * as vendorService from '@/lib/modules/vendor/vendor.service'
 import { categoryLabel } from '@/lib/modules/finance/ledger.categories'
 import { ZERO, addMoney, formatPKR, money, subtractMoney, type Money } from '@/lib/money'
 import { requireTenantOrRedirect } from '@/lib/tenant'
@@ -25,12 +26,15 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 export default async function FinancePage() {
   const { tenantId } = await requireTenantOrRedirect()
 
-  const [entries, receivables, expenseRows, options] = await Promise.all([
-    listLedgerEntries(tenantId, 100),
-    paymentService.getReceivables(tenantId),
-    expenseService.listExpenses(tenantId),
-    expenseService.getExpenseFormOptions(tenantId),
-  ])
+  const [entries, receivables, expenseRows, options, outsourcing, outsourcingSummary] =
+    await Promise.all([
+      listLedgerEntries(tenantId, 100),
+      paymentService.getReceivables(tenantId),
+      expenseService.listExpenses(tenantId),
+      expenseService.getExpenseFormOptions(tenantId),
+      vendorService.getOutsourcingLedger(tenantId),
+      vendorService.getOutsourcingSummary(tenantId),
+    ])
 
   // Totals are summed through the Money type rather than by casting to number,
   // for the same reason the columns are numeric in the first place.
@@ -92,6 +96,71 @@ export default async function FinancePage() {
                 <span className="tabular-nums">{formatPKR(amount)}</span>
               </div>
             ))}
+          </div>
+        </section>
+      )}
+
+      {outsourcing.length > 0 && (
+        <section className="mt-6">
+          <h2 className="mb-1 text-sm font-medium">Outsourcing</h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            {outsourcingSummary.jobs} job{outsourcingSummary.jobs === 1 ? '' : 's'} ·{' '}
+            {outsourcingSummary.inbound} taken from other operators · {outsourcingSummary.outbound}{' '}
+            of your cars lent out · total margin {formatPKR(outsourcingSummary.margin)}
+            {outsourcingSummary.lossMaking > 0
+              ? ` · ${outsourcingSummary.lossMaking} lost money`
+              : ''}
+          </p>
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-left">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">Booking</th>
+                  <th className="px-4 py-2.5 font-medium">Direction</th>
+                  <th className="px-4 py-2.5 font-medium">Counterparty</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Revenue</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Cost</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Margin</th>
+                </tr>
+              </thead>
+              <tbody>
+                {outsourcing.map((o) => {
+                  const loss = o.margin.startsWith('-')
+                  return (
+                    <tr key={String(o.bookingId)} className="border-t">
+                      <td className="px-4 py-2.5">
+                        <Link
+                          href={`/bookings/${o.bookingId}`}
+                          className="underline-offset-4 hover:underline"
+                        >
+                          {o.bookingNo}
+                        </Link>
+                        <span className="block text-xs text-muted-foreground">{o.customerName}</span>
+                      </td>
+                      <td className="px-4 py-2.5 text-muted-foreground">
+                        {o.direction === 'inbound' ? 'their car' : 'our car'}
+                      </td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{o.vendorName ?? '—'}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">
+                        {formatPKR(o.customerRevenue)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
+                        {formatPKR(o.vendorCost)}
+                      </td>
+                      <td
+                        className={cn(
+                          'px-4 py-2.5 text-right tabular-nums',
+                          loss && 'text-destructive'
+                        )}
+                      >
+                        {loss ? '' : '+'}
+                        {formatPKR(o.margin)}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
         </section>
       )}

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { optionalId, requiredId } from '@/lib/ids'
 import { addMoney, money, subtractMoney, type Money } from '@/lib/money'
 
 export const DAMAGE_SEVERITIES = ['minor', 'moderate', 'major', 'total_loss'] as const
@@ -10,7 +11,7 @@ export const CHALLAN_STATUSES = ['pending', 'paid', 'contested', 'waived'] as co
 
 const optionalMoney = z
   .union([z.string(), z.number()])
-  .optional()
+  .nullish()
   .transform((v) => (v === '' || v === undefined || v === null ? '0' : String(v).trim()))
   .refine((v) => /^\d+(\.\d{1,2})?$/.test(v), 'Enter an amount like 4500 or 4500.50')
 
@@ -19,13 +20,6 @@ const requiredMoney = z
   .transform((v) => String(v).trim())
   .refine((v) => /^\d+(\.\d{1,2})?$/.test(v), 'Enter an amount like 4500 or 4500.50')
   .refine((v) => Number(v) > 0, 'The amount must be more than zero')
-
-const optionalId = z
-  .union([z.string(), z.number(), z.bigint()])
-  .optional()
-  .transform((v) => (v === '' || v === undefined || v === null ? null : BigInt(v)))
-
-const requiredId = z.union([z.string(), z.number(), z.bigint()]).transform((v) => BigInt(v))
 
 export const recordDamageSchema = z
   .object({
@@ -51,7 +45,7 @@ export const recordDamageSchema = z
     amountChargedToCustomer: optionalMoney,
     downtimeDays: z
       .union([z.string(), z.number()])
-      .optional()
+      .nullish()
       .transform((v) => (v === '' || v === undefined || v === null ? '0' : String(v)))
       .refine((v) => /^\d+(\.\d{1,2})?$/.test(v), 'Enter a number of days'),
     status: z.enum(DAMAGE_STATUSES).default('open'),

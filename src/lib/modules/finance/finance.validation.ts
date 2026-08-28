@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { requiredId } from '@/lib/ids'
 import { EXPENSE_CATEGORY_KEYS, INCOME_CATEGORY_KEYS } from './ledger.categories'
 
 export const PAYMENT_METHODS = [
@@ -30,7 +31,7 @@ const requiredMoney = z
   .refine((v) => Number(v) > 0, 'The amount must be more than zero')
 
 export const recordPaymentSchema = z.object({
-  bookingId: z.union([z.string(), z.number(), z.bigint()]).transform((v) => BigInt(v)),
+  bookingId: requiredId,
   amount: requiredMoney,
   method: z.enum(PAYMENT_METHODS).default('cash'),
   purpose: z.enum(PAYMENT_PURPOSES).default('booking'),
@@ -45,7 +46,7 @@ export const recordPaymentSchema = z.object({
 })
 
 export const recordChargeSchema = z.object({
-  bookingId: z.union([z.string(), z.number(), z.bigint()]).transform((v) => BigInt(v)),
+  bookingId: requiredId,
   chargeType: z.enum([
     'rental',
     'driver',
@@ -67,7 +68,7 @@ export const recordChargeSchema = z.object({
 })
 
 export const promiseToPaySchema = z.object({
-  bookingId: z.union([z.string(), z.number(), z.bigint()]).transform((v) => BigInt(v)),
+  bookingId: requiredId,
   promisedAmount: requiredMoney,
   promisedDate: z
     .string()

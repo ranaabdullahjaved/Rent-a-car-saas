@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { optionalId } from '@/lib/ids'
 
 export const VEHICLE_STATUSES = [
   'available',
@@ -23,7 +24,7 @@ const optionalText = z
 
 const optionalInt = z
   .union([z.string(), z.number()])
-  .optional()
+  .nullish()
   .transform((v) => (v === '' || v === undefined || v === null ? null : Number(v)))
   .refine((v) => v === null || (Number.isInteger(v) && v >= 0), 'Must be a whole number')
 
@@ -52,10 +53,7 @@ export const createVehicleSchema = z.object({
   engineCc: optionalInt,
   seatingCapacity: optionalInt,
   ownershipType: z.enum(OWNERSHIP_TYPES).default('company'),
-  investorId: z
-    .union([z.string(), z.number(), z.bigint()])
-    .optional()
-    .transform((v) => (v === '' || v === undefined || v === null ? null : BigInt(v))),
+  investorId: optionalId,
   currentOdometer: optionalInt.transform((v) => v ?? 0),
   status: z.enum(VEHICLE_STATUSES).default('available'),
   notes: z.string().trim().max(2000).optional().transform((v) => (v ? v : null)),

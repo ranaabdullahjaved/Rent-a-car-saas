@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { optionalId } from '@/lib/ids'
 import { EXPENSE_CATEGORY_KEYS } from './ledger.categories'
 import { PAYMENT_METHODS } from './finance.validation'
 
@@ -24,11 +25,6 @@ const requiredMoney = z
   .transform((v) => String(v).trim())
   .refine((v) => /^\d+(\.\d{1,2})?$/.test(v), 'Enter an amount like 4500 or 4500.50')
   .refine((v) => Number(v) > 0, 'The amount must be more than zero')
-
-const optionalId = z
-  .union([z.string(), z.number(), z.bigint()])
-  .optional()
-  .transform((v) => (v === '' || v === undefined || v === null ? null : BigInt(v)))
 
 export const recordExpenseSchema = z
   .object({

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { optionalId, requiredId } from '@/lib/ids'
 
 export const BOOKING_STATUSES = [
   'tentative',
@@ -26,7 +27,7 @@ export function blocksVehicle(status: string): boolean {
 
 const money = z
   .union([z.string(), z.number()])
-  .optional()
+  .nullish()
   .transform((v) => (v === '' || v === undefined || v === null ? '0' : String(v)))
   .refine((v) => /^\d+(\.\d{1,2})?$/.test(v), 'Enter an amount like 4500 or 4500.50')
 
@@ -35,20 +36,15 @@ const requiredMoney = z
   .transform((v) => String(v))
   .refine((v) => /^\d+(\.\d{1,2})?$/.test(v), 'Enter an amount like 4500 or 4500.50')
 
-const optionalId = z
-  .union([z.string(), z.number(), z.bigint()])
-  .optional()
-  .transform((v) => (v === '' || v === undefined || v === null ? null : BigInt(v)))
-
 const optionalInt = z
   .union([z.string(), z.number()])
-  .optional()
+  .nullish()
   .transform((v) => (v === '' || v === undefined || v === null ? null : Number(v)))
   .refine((v) => v === null || (Number.isInteger(v) && v >= 0), 'Must be a whole number')
 
 export const createBookingSchema = z
   .object({
-    customerId: z.union([z.string(), z.number(), z.bigint()]).transform((v) => BigInt(v)),
+    customerId: requiredId,
     vehicleId: optionalId,
     driverId: optionalId,
     bookingType: z.enum(BOOKING_TYPES).default('self_drive'),
