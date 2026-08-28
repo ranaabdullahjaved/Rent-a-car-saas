@@ -25,6 +25,20 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: false, // enable when Resend is configured
   },
+  // Brute-force protection on the credential endpoints. Storage is in-memory,
+  // which on serverless throttles per warm instance — real but not
+  // distributed. NEEDS FROM YOU to make it distributed: Upstash REST
+  // credentials (UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN), at which
+  // point this moves to shared storage.
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 30,
+    customRules: {
+      '/sign-in/email': { window: 60, max: 5 },
+      '/sign-up/email': { window: 300, max: 5 },
+    },
+  },
   // Table/field mapping to our schema lives on the adapter above — the
   // plugin's own `schema` option is only for renaming models/fields, which
   // we don't need here.

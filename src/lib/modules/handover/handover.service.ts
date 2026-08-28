@@ -1,6 +1,6 @@
 import { and, asc, eq, isNull } from 'drizzle-orm'
 import { db } from '@/db/client'
-import { bookings, handoverMedia, vehicleHandovers, vehicles } from '@/db/schema'
+import { bookings, handoverMedia, tenants, vehicleHandovers, vehicles } from '@/db/schema'
 import { AppError, NotFoundError, fromDbError } from '@/lib/errors'
 import { chargeableDays } from '../booking/booking.quote'
 import { assessReturn, missingAngles, type RecordHandoverInput } from './handover.validation'
@@ -167,12 +167,18 @@ export async function attachMedia(
  * What the return is going to cost, proposed from the two handovers.
  * Returns null until both have happened.
  */
-export async function getReturnAssessment(
-  tenantId: bigint,
-  bookingId: bigint,
-  fuelRatePerLitre = '280'
-) {
+export async function getReturnAssessment(tenantId: bigint, bookingId: bigint) {
   const { booking: b, tankCapacityLitres } = await loadBookingForHandover(tenantId, bookingId)
+
+  // The tenant's own pump price, set in Settings; 280 only until they do.
+  const [tenant] = await db
+    .select({ settings: tenants.settings })
+    .from(tenants)
+    .where(eq(tenants.id, tenantId))
+    .limit(1)
+  const fuelRatePerLitre = String(
+    (tenant?.settings as Record<string, unknown>)?.fuelRatePerLitre ?? '280'
+  )
   const handovers = await listHandovers(tenantId, bookingId)
 
   const out = handovers.find((h) => h.handoverType === 'checkout')

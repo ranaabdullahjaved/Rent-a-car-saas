@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 import { db } from '@/db/client'
-import { notificationRules, users } from '@/db/schema'
+import { notificationRules, tenants, users } from '@/db/schema'
 import { PageHeader } from '@/components/shared/page-header'
 import { can } from '@/lib/permissions'
 import { requireTenantOrRedirect } from '@/lib/tenant'
 import { TeamPanel } from './team-panel'
 import { AlertsPanel } from './alerts-panel'
+import { BusinessPanel } from './business-panel'
 import { effectiveRules } from '@/lib/modules/alerts/alert.rules'
 
 export const metadata: Metadata = { title: 'Settings' }
@@ -14,6 +15,16 @@ export const metadata: Metadata = { title: 'Settings' }
 export default async function SettingsPage() {
   const ctx = await requireTenantOrRedirect()
   const manageTeam = can(ctx.role, 'team.manage')
+
+  const [tenant] = await db
+    .select({
+      name: tenants.name,
+      defaultBufferMinutes: tenants.defaultBufferMinutes,
+      settings: tenants.settings,
+    })
+    .from(tenants)
+    .where(eq(tenants.id, ctx.tenantId))
+    .limit(1)
 
   const storedRules = await db
     .select({
@@ -45,6 +56,15 @@ export default async function SettingsPage() {
       <PageHeader title="Settings" description="Your workspace, team and defaults." />
 
       <div className="flex max-w-3xl flex-col gap-4">
+        {can(ctx.role, 'settings.manage') && tenant && (
+          <BusinessPanel
+            name={tenant.name}
+            defaultBufferMinutes={tenant.defaultBufferMinutes}
+            fuelRatePerLitre={String(
+              (tenant.settings as Record<string, unknown>)?.fuelRatePerLitre ?? '280'
+            )}
+          />
+        )}
         {can(ctx.role, 'settings.manage') && (
           <AlertsPanel
             rules={rules.map((r) => ({ key: r.key, enabled: r.enabled, offsetMinutes: r.offsetMinutes }))}

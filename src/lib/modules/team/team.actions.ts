@@ -1,9 +1,9 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { db } from '@/db/client'
-import { users } from '@/db/schema'
+import { tenants, users } from '@/db/schema'
 import { AppError } from '@/lib/errors'
 import { ROLES, type Role } from '@/lib/permissions'
 import { auth } from '@/lib/auth/server'
@@ -108,6 +108,42 @@ export async function setMemberActiveAction(memberId: string, active: boolean): 
       .where(and(eq(users.id, BigInt(memberId)), eq(users.tenantId, ctx.tenantId)))
 
     revalidatePath('/settings')
+    return { ok: true }
+  } catch (err) {
+    return failure(err)
+  }
+}
+
+/** Business defaults: turnaround buffer and the fuel rate used at check-in. */
+export async function updateBusinessDefaultsAction(form: FormData): Promise<TeamActionResult> {
+  try {
+    const ctx = await requireTenant()
+    requireCan(ctx, 'settings.manage')
+
+    const name = String(form.get('name') ?? '').trim()
+    const buffer = Number(form.get('defaultBufferMinutes') ?? 0)
+    const fuelRate = String(form.get('fuelRatePerLitre') ?? '').trim()
+
+    if (name.length < 2) return { ok: false, message: 'The business needs a name.' }
+    if (!Number.isInteger(buffer) || buffer < 0 || buffer > 24 * 60) {
+      return { ok: false, message: 'The buffer must be between 0 and 1440 minutes.' }
+    }
+    if (!/^\d+(\.\d{1,2})?$/.test(fuelRate) || Number(fuelRate) <= 0) {
+      return { ok: false, message: 'Enter the fuel rate as rupees per litre.' }
+    }
+
+    await db
+      .update(tenants)
+      .set({
+        name,
+        defaultBufferMinutes: buffer,
+        settings: sql`${tenants.settings} || jsonb_build_object('fuelRatePerLitre', ${fuelRate}::text)`,
+        updatedAt: new Date(),
+      })
+      .where(eq(tenants.id, ctx.tenantId))
+
+    revalidatePath('/settings')
+    revalidatePath('/', 'layout')
     return { ok: true }
   } catch (err) {
     return failure(err)

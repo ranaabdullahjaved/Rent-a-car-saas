@@ -32,16 +32,18 @@ type BookingFormProps = {
   initialVehicleId?: string
   initialStart?: string
   initialEnd?: string
+  /** The tenant's turnaround default from Settings. */
+  initialBufferMinutes?: number
 }
 
-export function BookingForm({ customers, initialVehicleId, initialStart, initialEnd }: BookingFormProps) {
+export function BookingForm({ customers, initialVehicleId, initialStart, initialEnd, initialBufferMinutes }: BookingFormProps) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
   const [startAt, setStartAt] = useState(initialStart ?? '')
   const [endAt, setEndAt] = useState(initialEnd ?? '')
-  const [bufferMinutes, setBufferMinutes] = useState('0')
+  const [bufferMinutes, setBufferMinutes] = useState(String(initialBufferMinutes ?? 0))
   const [bookingType, setBookingType] = useState('self_drive')
   const [dailyRate, setDailyRate] = useState('')
   const [driverCharge, setDriverCharge] = useState('')
