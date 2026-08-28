@@ -6,9 +6,11 @@ import { PageHeader } from '@/components/shared/page-header'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { NotFoundError } from '@/lib/errors'
 import * as bookingService from '@/lib/modules/booking/booking.service'
+import * as paymentService from '@/lib/modules/finance/payment.service'
 import { blocksVehicle } from '@/lib/modules/booking/booking.validation'
 import { formatPKR, money } from '@/lib/money'
 import { requireTenantOrRedirect } from '@/lib/tenant'
+import { MoneyPanel } from './money-panel'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -49,7 +51,11 @@ export default async function BookingDetailPage({ params }: Props) {
   }
 
   const b = row.booking
-  const charges = await bookingService.getBookingCharges(tenantId, b.id)
+  const [charges, bookingPayments, promises] = await Promise.all([
+    bookingService.getBookingCharges(tenantId, b.id),
+    paymentService.listPayments(tenantId, b.id),
+    paymentService.listPromises(tenantId, b.id),
+  ])
   const overdue = b.endAt < new Date() && !b.actualEndAt && ['dispatched', 'active'].includes(b.status)
 
   return (
@@ -165,16 +171,57 @@ export default async function BookingDetailPage({ params }: Props) {
             </section>
           )}
 
+          {bookingPayments.length > 0 && (
+            <section className="rounded-lg border p-5">
+              <h2 className="mb-2 text-sm font-medium">Payments received</h2>
+              <ul className="divide-y text-sm">
+                {bookingPayments.map((p) => (
+                  <li key={String(p.id)} className="flex justify-between gap-4 py-2">
+                    <span>
+                      {p.paidAt.toISOString().slice(0, 10)}
+                      <span className="text-muted-foreground">
+                        {' · '}
+                        {p.method.replace('_', ' ')}
+                        {p.purpose !== 'booking' ? ` · ${p.purpose.replace(/_/g, ' ')}` : ''}
+                      </span>
+                    </span>
+                    <span className="tabular-nums">{formatPKR(money(p.amount))}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {promises.length > 0 && (
+            <section className="rounded-lg border p-5">
+              <h2 className="mb-2 text-sm font-medium">Promises to pay</h2>
+              <ul className="divide-y text-sm">
+                {promises.map((pr) => (
+                  <li key={String(pr.id)} className="flex justify-between gap-4 py-2">
+                    <span>
+                      {pr.promisedDate}
+                      <span className="text-muted-foreground"> · {pr.status}</span>
+                    </span>
+                    <span className="tabular-nums">{formatPKR(money(pr.promisedAmount))}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           <section className="rounded-lg border border-dashed p-5">
             <h2 className="mb-2 text-sm font-medium">Not built yet</h2>
             <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
               <li>Check-out and check-in with photo capture</li>
-              <li>Recording payments and payment promises</li>
               <li>Damage, fuel shortfall and challans</li>
               <li>Extending or cancelling from this page</li>
             </ul>
           </section>
         </div>
+      </div>
+
+      <div className="mt-4">
+        <MoneyPanel bookingId={id} balanceDue={b.balanceDue ?? '0'} />
       </div>
     </div>
   )
