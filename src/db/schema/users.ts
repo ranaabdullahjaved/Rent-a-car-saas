@@ -5,7 +5,10 @@ export const users = pgTable('users', {
   id: bigserial('id', { mode: 'bigint' }).primaryKey(),
   tenantId: bigint('tenant_id', { mode: 'bigint' }).references(() => tenants.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
-  email: text('email').notNull(),
+  // Better Auth identifies an account by email and checks for a clash in
+  // application code, which two concurrent sign-ups can both pass. The
+  // constraint is what actually guarantees it.
+  email: text('email').notNull().unique(),
   emailVerified: boolean('email_verified').notNull().default(false),
   image: text('image'),
   role: text('role').notNull().default('staff'),

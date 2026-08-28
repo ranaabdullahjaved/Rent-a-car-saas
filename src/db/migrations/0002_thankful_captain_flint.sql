@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX "vehicles_tenant_registration_unique" ON "vehicles" USING btree ("tenant_id","registration_no") WHERE "vehicles"."deleted_at" is null;--> statement-breakpoint
+ALTER TABLE "users" ADD CONSTRAINT "users_email_unique" UNIQUE("email");

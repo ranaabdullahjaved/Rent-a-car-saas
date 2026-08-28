@@ -52,10 +52,29 @@ export class TenantError extends AppError {
   }
 }
 
+/**
+ * Finds the Postgres SQLSTATE in an error chain.
+ *
+ * Drizzle wraps driver errors, so the real code sits on `cause` rather than
+ * on the error itself — reading err.code alone silently misses every
+ * constraint violation, including the double-booking one.
+ */
+export function pgErrorCode(err: unknown): string | undefined {
+  let current: unknown = err
+  for (let depth = 0; depth < 5 && current; depth++) {
+    const code = (current as { code?: unknown }).code
+    // SQLSTATE is five characters, digits and uppercase letters (23P01).
+    // Checking the shape avoids mistaking a library's own string code for one.
+    if (typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code)) return code
+    current = (current as { cause?: unknown }).cause
+  }
+  return undefined
+}
+
 // Converts Postgres error codes to typed application errors
 export function fromDbError(err: unknown): AppError {
-  const pgErr = err as { code?: string; message?: string }
-  if (pgErr.code === '23P01') return new DoubleBookingError()
-  if (pgErr.code === '23505') return new AppError('Duplicate record', 'DUPLICATE', 409)
+  const code = pgErrorCode(err)
+  if (code === '23P01') return new DoubleBookingError()
+  if (code === '23505') return new AppError('Duplicate record', 'DUPLICATE', 409)
   throw err // re-throw unknown errors
 }

@@ -5,6 +5,7 @@ import {
   NotFoundError,
   ValidationError,
   fromDbError,
+  pgErrorCode,
 } from './errors'
 
 describe('fromDbError', () => {
@@ -22,6 +23,32 @@ describe('fromDbError', () => {
     const err = fromDbError({ code: '23505', message: 'duplicate key' })
     expect(err.statusCode).toBe(409)
     expect(err.code).toBe('DUPLICATE')
+  })
+
+  it('finds the code when Drizzle has wrapped the driver error', () => {
+    // This is the shape Drizzle actually throws: its own error, with the pg
+    // error on `cause`. Reading err.code alone misses it entirely, which is
+    // how a 23P01 turned into an empty 500 instead of a 409.
+    const wrapped = Object.assign(new Error('Failed query: insert into "bookings" ...'), {
+      cause: { code: '23P01', constraint_name: 'no_double_booking' },
+    })
+    const err = fromDbError(wrapped)
+    expect(err).toBeInstanceOf(DoubleBookingError)
+    expect(err.statusCode).toBe(409)
+  })
+
+  it('finds a unique violation nested two levels deep', () => {
+    const wrapped = Object.assign(new Error('outer'), {
+      cause: Object.assign(new Error('middle'), { cause: { code: '23505' } }),
+    })
+    expect(fromDbError(wrapped).code).toBe('DUPLICATE')
+  })
+
+  it('ignores a library string code that is not a SQLSTATE', () => {
+    // e.g. Node's ERR_INVALID_ARG_TYPE — five-character check must not match.
+    expect(() => fromDbError({ code: 'ERR_INVALID_ARG_TYPE' })).toThrow()
+    expect(pgErrorCode({ code: 'ABORT' })).toBe('ABORT') // shape-valid, correctly returned
+    expect(pgErrorCode({ code: 'nope' })).toBeUndefined()
   })
 
   it('re-throws anything it does not recognise rather than swallowing it', () => {

@@ -15,6 +15,13 @@
       "when": 1787873514203,
       "tag": "0001_long_frank_castle",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787884490059,
+      "tag": "0002_thankful_captain_flint",
+      "breakpoints": true
     }
   ]
 }

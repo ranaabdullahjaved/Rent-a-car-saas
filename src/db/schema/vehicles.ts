@@ -1,4 +1,5 @@
-import { pgTable, bigserial, bigint, text, integer, boolean, numeric, timestamp, date } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { pgTable, bigserial, bigint, text, integer, boolean, numeric, timestamp, date, uniqueIndex } from 'drizzle-orm/pg-core'
 import { tenants } from './tenants'
 
 export const vehicles = pgTable('vehicles', {
@@ -36,7 +37,15 @@ export const vehicles = pgTable('vehicles', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
-})
+}, (t) => [
+  // One registration per tenant. Registrations are stored canonicalised
+  // (uppercase, single dashes) so LEA-01-1234 and "lea 01 1234" collide as
+  // they should. Partial on deleted_at so a retired vehicle's plate can be
+  // reused if the car is re-registered later.
+  uniqueIndex('vehicles_tenant_registration_unique')
+    .on(t.tenantId, t.registrationNo)
+    .where(sql`${t.deletedAt} is null`),
+])
 
 export type Vehicle = typeof vehicles.$inferSelect
 export type NewVehicle = typeof vehicles.$inferInsert
