@@ -7,10 +7,13 @@ import { StatusBadge } from '@/components/shared/status-badge'
 import { NotFoundError } from '@/lib/errors'
 import * as bookingService from '@/lib/modules/booking/booking.service'
 import * as paymentService from '@/lib/modules/finance/payment.service'
+import * as incidentService from '@/lib/modules/incident/incident.service'
+import { challanTotal, damageNetImpact } from '@/lib/modules/incident/incident.validation'
 import { blocksVehicle } from '@/lib/modules/booking/booking.validation'
 import { formatPKR, money } from '@/lib/money'
 import { requireTenantOrRedirect } from '@/lib/tenant'
 import { MoneyPanel } from './money-panel'
+import { IncidentPanel } from './incident-panel'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -51,10 +54,13 @@ export default async function BookingDetailPage({ params }: Props) {
   }
 
   const b = row.booking
-  const [charges, bookingPayments, promises] = await Promise.all([
+  const [charges, bookingPayments, promises, damages, challans, blockers] = await Promise.all([
     bookingService.getBookingCharges(tenantId, b.id),
     paymentService.listPayments(tenantId, b.id),
     paymentService.listPromises(tenantId, b.id),
+    incidentService.listDamage(tenantId, { bookingId: b.id }),
+    incidentService.listChallans(tenantId, { bookingId: b.id }),
+    incidentService.getClosureBlockers(tenantId, b.id),
   ])
   const overdue = b.endAt < new Date() && !b.actualEndAt && ['dispatched', 'active'].includes(b.status)
 
@@ -92,6 +98,19 @@ export default async function BookingDetailPage({ params }: Props) {
           <p className="mt-1 text-sm text-muted-foreground">
             Due back {when(b.endAt)} and not yet checked in.
           </p>
+        </div>
+      )}
+
+      {blockers.length > 0 && b.status !== 'cancelled' && (
+        <div className="mb-6 rounded-lg border p-4">
+          <p className="text-sm font-medium">Cannot be closed yet</p>
+          <ul className="mt-2 flex flex-col gap-1">
+            {blockers.map((reason) => (
+              <li key={reason} className="text-sm text-muted-foreground">
+                • {reason}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -209,6 +228,56 @@ export default async function BookingDetailPage({ params }: Props) {
             </section>
           )}
 
+          {damages.length > 0 && (
+            <section className="rounded-lg border p-5">
+              <h2 className="mb-2 text-sm font-medium">Damage</h2>
+              <ul className="divide-y text-sm">
+                {damages.map((d) => {
+                  const net = damageNetImpact(d.actualRepairCost, d.amountChargedToCustomer)
+                  const gain = !net.startsWith('-')
+                  return (
+                    <li key={String(d.id)} className="py-2">
+                      <div className="flex justify-between gap-4">
+                        <span>{d.description}</span>
+                        <span className={gain ? 'tabular-nums' : 'tabular-nums text-destructive'}>
+                          {gain ? '+' : ''}
+                          {formatPKR(money(net))}
+                        </span>
+                      </div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">
+                        repair {formatPKR(money(d.actualRepairCost))} · charged{' '}
+                        {formatPKR(money(d.amountChargedToCustomer))} · {d.severity.replace('_', ' ')} ·{' '}
+                        {d.status.replace('_', ' ')}
+                        {Number(d.downtimeDays) > 0 ? ` · ${d.downtimeDays} days off road` : ''}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          )}
+
+          {challans.length > 0 && (
+            <section className="rounded-lg border p-5">
+              <h2 className="mb-2 text-sm font-medium">Traffic challans</h2>
+              <ul className="divide-y text-sm">
+                {challans.map((c) => (
+                  <li key={String(c.id)} className="flex justify-between gap-4 py-2">
+                    <span>
+                      {c.violationType ?? 'Violation'}
+                      <span className="block text-xs text-muted-foreground">
+                        {c.violationAt.toISOString().slice(0, 10)} · {c.liability} liable · {c.status}
+                      </span>
+                    </span>
+                    <span className="tabular-nums">
+                      {formatPKR(challanTotal(c.amount, c.lateSurcharge))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           <section className="rounded-lg border border-dashed p-5">
             <h2 className="mb-2 text-sm font-medium">Not built yet</h2>
             <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
@@ -220,8 +289,9 @@ export default async function BookingDetailPage({ params }: Props) {
         </div>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <MoneyPanel bookingId={id} balanceDue={b.balanceDue ?? '0'} />
+        <IncidentPanel bookingId={id} vehicleId={b.vehicleId ? String(b.vehicleId) : null} />
       </div>
     </div>
   )
