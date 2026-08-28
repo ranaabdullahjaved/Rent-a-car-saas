@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { AppError } from '@/lib/errors'
-import { requireTenant } from '@/lib/tenant'
+import { requireCan, requireTenant } from '@/lib/tenant'
 import * as bookingService from './booking.service'
 import { createBookingSchema } from './booking.validation'
 
@@ -24,7 +24,8 @@ function failure(err: unknown): BookingActionResult {
 
 export async function createBookingAction(form: FormData): Promise<BookingActionResult> {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'bookings.manage')
 
     const parsed = createBookingSchema.safeParse(formToObject(form))
     if (!parsed.success) {
@@ -46,7 +47,8 @@ export async function setBookingStatusAction(
   status: string
 ): Promise<BookingActionResult> {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'bookings.manage')
     const booking = await bookingService.setStatus(tenantId, BigInt(id), status)
     revalidatePath('/bookings')
     revalidatePath(`/bookings/${id}`)
@@ -61,7 +63,8 @@ export async function cancelBookingAction(
   reason: string
 ): Promise<BookingActionResult> {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'bookings.manage')
     if (!reason.trim()) return { ok: false, message: 'Give a reason for cancelling.' }
 
     const booking = await bookingService.cancelBooking(tenantId, BigInt(id), reason.trim())

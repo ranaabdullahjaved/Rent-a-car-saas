@@ -8,6 +8,8 @@ import * as vendorService from '@/lib/modules/vendor/vendor.service'
 import { categoryLabel } from '@/lib/modules/finance/ledger.categories'
 import { ZERO, addMoney, formatPKR, money, subtractMoney, type Money } from '@/lib/money'
 import { requireTenantOrRedirect } from '@/lib/tenant'
+import { can } from '@/lib/permissions'
+import { AccessDenied } from '@/components/shared/access-denied'
 import { cn } from '@/lib/utils'
 import { ExpenseForm } from './expense-form'
 
@@ -24,7 +26,8 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 }
 
 export default async function FinancePage() {
-  const { tenantId } = await requireTenantOrRedirect()
+  const { tenantId, role } = await requireTenantOrRedirect()
+  if (!can(role, 'reports.view')) return <AccessDenied what="finance" />
 
   const [entries, receivables, expenseRows, options, outsourcing, outsourcingSummary] =
     await Promise.all([

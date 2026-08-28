@@ -5,11 +5,14 @@ import * as investorService from '@/lib/modules/investor/investor.service'
 import * as agreementService from '@/lib/modules/investor/agreement.service'
 import { AGREEMENT_TYPE_LABELS } from '@/lib/modules/investor/agreement.validation'
 import { requireTenantOrRedirect } from '@/lib/tenant'
+import { can } from '@/lib/permissions'
+import { AccessDenied } from '@/components/shared/access-denied'
 
 export const metadata: Metadata = { title: 'Investors' }
 
 export default async function InvestorsPage() {
-  const { tenantId } = await requireTenantOrRedirect()
+  const { tenantId, role } = await requireTenantOrRedirect()
+  if (!can(role, 'investors.view')) return <AccessDenied what="investors" />
 
   const [investors, agreements] = await Promise.all([
     investorService.listInvestors(tenantId),

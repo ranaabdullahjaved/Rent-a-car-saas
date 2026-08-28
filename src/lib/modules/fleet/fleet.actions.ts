@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { AppError } from '@/lib/errors'
-import { requireTenant } from '@/lib/tenant'
+import { requireCan, requireTenant } from '@/lib/tenant'
 import * as fleetService from './fleet.service'
 import { createVehicleSchema, updateVehicleSchema } from './fleet.validation'
 
@@ -25,7 +25,8 @@ function failure(err: unknown): FleetActionResult {
 export async function createVehicleAction(form: FormData): Promise<FleetActionResult> {
   try {
     // A Server Action is a public endpoint — authorise before anything else.
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'fleet.manage')
 
     const parsed = createVehicleSchema.safeParse(formToObject(form))
     if (!parsed.success) {
@@ -43,7 +44,8 @@ export async function createVehicleAction(form: FormData): Promise<FleetActionRe
 
 export async function updateVehicleAction(id: string, form: FormData): Promise<FleetActionResult> {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'fleet.manage')
 
     const parsed = updateVehicleSchema.safeParse(formToObject(form))
     if (!parsed.success) {

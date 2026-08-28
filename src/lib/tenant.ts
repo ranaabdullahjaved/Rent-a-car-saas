@@ -4,7 +4,8 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { db } from '@/db/client'
 import { users } from '@/db/schema'
-import { TenantError } from './errors'
+import { AppError, TenantError } from './errors'
+import { can, type Capability } from './permissions'
 import { auth } from './auth/server'
 
 // Re-exported so callers can keep importing it alongside requireTenant.
@@ -78,5 +79,20 @@ export async function requireTenantOrRedirect(): Promise<TenantContext> {
       redirect('/login')
     }
     throw err
+  }
+}
+
+/**
+ * Authorises one capability for the current request's role. Throws a 403
+ * AppError, which apiError maps and Server Actions surface as a message —
+ * never a silent pass.
+ */
+export function requireCan(ctx: Pick<TenantContext, 'role'>, capability: Capability): void {
+  if (!can(ctx.role, capability)) {
+    throw new AppError(
+      'Your role does not allow this. Ask the owner if you need access.',
+      'FORBIDDEN',
+      403
+    )
   }
 }

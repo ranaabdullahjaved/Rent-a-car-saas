@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { apiError, jsonOk } from '@/lib/api'
-import { requireTenant } from '@/lib/tenant'
+import { requireCan, requireTenant } from '@/lib/tenant'
 import { ValidationError } from '@/lib/errors'
 import * as incidentService from '@/lib/modules/incident/incident.service'
 import {
@@ -36,7 +36,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'bookings.manage')
     const body = await request.json()
     const kind = request.nextUrl.searchParams.get('kind') ?? 'damage'
 

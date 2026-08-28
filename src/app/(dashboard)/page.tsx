@@ -12,6 +12,7 @@ import {
 } from '@/lib/modules/report/report.periods'
 import { formatPKR } from '@/lib/money'
 import { requireTenantOrRedirect } from '@/lib/tenant'
+import { can } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 
 export const metadata: Metadata = { title: 'Dashboard' }
@@ -191,7 +192,8 @@ async function VehicleProfitability({ tenantId, period }: { tenantId: bigint; pe
 /* ---------- page ---------- */
 
 export default async function DashboardPage({ searchParams }: PageProps) {
-  const { tenantId } = await requireTenantOrRedirect()
+  const { tenantId, role } = await requireTenantOrRedirect()
+  const showMoney = can(role, 'reports.view')
   const raw = await searchParams
 
   const fallback = monthToDate()
@@ -233,9 +235,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       {/* Each widget streams independently, so one slow query cannot hold up
           the rest of the page. */}
       <div className="flex flex-col gap-4">
-        <Suspense fallback={<Skeleton rows={4} />}>
-          <CashPosition tenantId={tenantId} period={period} />
-        </Suspense>
+        {showMoney && (
+          <Suspense fallback={<Skeleton rows={4} />}>
+            <CashPosition tenantId={tenantId} period={period} />
+          </Suspense>
+        )}
 
         <Panel title="Today" hint="What needs attention right now">
           <Suspense fallback={<Skeleton rows={3} />}>
@@ -243,11 +247,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           </Suspense>
         </Panel>
 
-        <Panel title="Profit per vehicle" hint="Which cars earn, and which cost you">
-          <Suspense fallback={<Skeleton rows={5} />}>
-            <VehicleProfitability tenantId={tenantId} period={period} />
-          </Suspense>
-        </Panel>
+        {showMoney && (
+          <Panel title="Profit per vehicle" hint="Which cars earn, and which cost you">
+            <Suspense fallback={<Skeleton rows={5} />}>
+              <VehicleProfitability tenantId={tenantId} period={period} />
+            </Suspense>
+          </Panel>
+        )}
       </div>
 
       <p className="mt-6 text-xs text-muted-foreground">

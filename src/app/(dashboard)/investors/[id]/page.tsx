@@ -11,6 +11,8 @@ import { AGREEMENT_TYPE_LABELS } from '@/lib/modules/investor/agreement.validati
 import { fleetFilterSchema } from '@/lib/modules/fleet/fleet.validation'
 import { formatPKR, money } from '@/lib/money'
 import { requireTenantOrRedirect } from '@/lib/tenant'
+import { can } from '@/lib/permissions'
+import { AccessDenied } from '@/components/shared/access-denied'
 import { AgreementForm } from '../agreement-form'
 
 type Props = {
@@ -29,7 +31,8 @@ function defaultPeriod() {
 }
 
 export default async function InvestorDetailPage({ params, searchParams }: Props) {
-  const { tenantId } = await requireTenantOrRedirect()
+  const { tenantId, role } = await requireTenantOrRedirect()
+  if (!can(role, 'investors.view')) return <AccessDenied what="investors" />
   const { id } = await params
   const raw = await searchParams
 

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { AppError } from '@/lib/errors'
-import { requireTenant } from '@/lib/tenant'
+import { requireCan, requireTenant } from '@/lib/tenant'
 import * as agreementService from './agreement.service'
 import * as investorService from './investor.service'
 import { createAgreementSchema } from './agreement.validation'
@@ -24,7 +24,8 @@ function failure(err: unknown): InvestorActionResult {
 
 export async function createInvestorAction(form: FormData): Promise<InvestorActionResult> {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'investors.manage')
     const parsed = createInvestorSchema.safeParse(formToObject(form))
     if (!parsed.success) {
       return { ok: false, message: parsed.error.issues[0]?.message ?? 'Check the form.' }
@@ -40,7 +41,8 @@ export async function createInvestorAction(form: FormData): Promise<InvestorActi
 
 export async function createAgreementAction(form: FormData): Promise<InvestorActionResult> {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'investors.manage')
     const parsed = createAgreementSchema.safeParse(formToObject(form))
     if (!parsed.success) {
       return { ok: false, message: parsed.error.issues[0]?.message ?? 'Check the form.' }

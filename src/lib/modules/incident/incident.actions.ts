@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { AppError } from '@/lib/errors'
-import { requireTenant } from '@/lib/tenant'
+import { requireCan, requireTenant } from '@/lib/tenant'
 import * as incidentService from './incident.service'
 import { recordChallanSchema, recordDamageSchema } from './incident.validation'
 
@@ -31,7 +31,8 @@ function revalidateAround(vehicleId: bigint, bookingId: bigint | null) {
 
 export async function recordDamageAction(form: FormData): Promise<IncidentActionResult> {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'bookings.manage')
     const parsed = recordDamageSchema.safeParse(formToObject(form))
     if (!parsed.success) {
       return { ok: false, message: parsed.error.issues[0]?.message ?? 'Check the form.' }
@@ -47,7 +48,8 @@ export async function recordDamageAction(form: FormData): Promise<IncidentAction
 
 export async function recordChallanAction(form: FormData): Promise<IncidentActionResult> {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'bookings.manage')
     const parsed = recordChallanSchema.safeParse(formToObject(form))
     if (!parsed.success) {
       return { ok: false, message: parsed.error.issues[0]?.message ?? 'Check the form.' }

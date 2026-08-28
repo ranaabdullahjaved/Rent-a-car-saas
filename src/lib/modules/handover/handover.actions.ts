@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { AppError } from '@/lib/errors'
-import { requireTenant } from '@/lib/tenant'
+import { requireCan, requireTenant } from '@/lib/tenant'
 import { requestUploadUrl } from '../media/media.service'
 import * as handoverService from './handover.service'
 import { recordHandoverSchema, uploadRequestSchema } from './handover.validation'
@@ -36,7 +36,8 @@ function failure(err: unknown): HandoverActionResult {
  */
 export async function requestUploadTicket(input: unknown): Promise<UploadTicket> {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'bookings.manage')
     const parsed = uploadRequestSchema.safeParse(input)
     if (!parsed.success) {
       return { ok: false, message: parsed.error.issues[0]?.message ?? 'That file cannot be attached.' }
@@ -58,7 +59,8 @@ export async function requestUploadTicket(input: unknown): Promise<UploadTicket>
 
 export async function recordHandoverAction(form: FormData): Promise<HandoverActionResult> {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'bookings.manage')
     const parsed = recordHandoverSchema.safeParse(formToObject(form))
     if (!parsed.success) {
       return { ok: false, message: parsed.error.issues[0]?.message ?? 'Check the form.' }

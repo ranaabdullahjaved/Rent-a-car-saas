@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { apiError, jsonOk } from '@/lib/api'
-import { requireTenant } from '@/lib/tenant'
+import { requireCan, requireTenant } from '@/lib/tenant'
 import { ValidationError } from '@/lib/errors'
 import * as handoverService from '@/lib/modules/handover/handover.service'
 import { recordHandoverSchema } from '@/lib/modules/handover/handover.validation'
@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'bookings.manage')
     const parsed = recordHandoverSchema.safeParse(await request.json())
     if (!parsed.success) throw new ValidationError(parsed.error.issues[0]?.message ?? 'Invalid handover')
 

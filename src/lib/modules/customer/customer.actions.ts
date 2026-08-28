@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { AppError } from '@/lib/errors'
-import { requireTenant } from '@/lib/tenant'
+import { requireCan, requireTenant } from '@/lib/tenant'
 import * as customerService from './customer.service'
 import { createCustomerSchema, updateCustomerSchema } from './customer.validation'
 
@@ -28,7 +28,8 @@ export async function createCustomerAction(
   { force = false }: { force?: boolean } = {}
 ): Promise<CustomerActionResult> {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'customers.manage')
 
     const parsed = createCustomerSchema.safeParse(formToObject(form))
     if (!parsed.success) {
@@ -69,7 +70,8 @@ export async function updateCustomerAction(
   form: FormData
 ): Promise<CustomerActionResult> {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'customers.manage')
 
     const parsed = updateCustomerSchema.safeParse(formToObject(form))
     if (!parsed.success) {

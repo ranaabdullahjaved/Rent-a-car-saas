@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { AppError } from '@/lib/errors'
-import { requireTenant } from '@/lib/tenant'
+import { requireCan, requireTenant } from '@/lib/tenant'
 import * as expenseService from './expense.service'
 import * as paymentService from './payment.service'
 import { promiseToPaySchema, recordChargeSchema, recordPaymentSchema } from './finance.validation'
@@ -30,7 +30,8 @@ function revalidateBooking(bookingId: string) {
 
 export async function recordPaymentAction(form: FormData): Promise<FinanceActionResult> {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'finance.record')
     const parsed = recordPaymentSchema.safeParse(formToObject(form))
     if (!parsed.success) {
       return { ok: false, message: parsed.error.issues[0]?.message ?? 'Check the form.' }
@@ -46,7 +47,8 @@ export async function recordPaymentAction(form: FormData): Promise<FinanceAction
 
 export async function addChargeAction(form: FormData): Promise<FinanceActionResult> {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'finance.record')
     const parsed = recordChargeSchema.safeParse(formToObject(form))
     if (!parsed.success) {
       return { ok: false, message: parsed.error.issues[0]?.message ?? 'Check the form.' }
@@ -62,7 +64,8 @@ export async function addChargeAction(form: FormData): Promise<FinanceActionResu
 
 export async function promiseToPayAction(form: FormData): Promise<FinanceActionResult> {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'finance.record')
     const parsed = promiseToPaySchema.safeParse(formToObject(form))
     if (!parsed.success) {
       return { ok: false, message: parsed.error.issues[0]?.message ?? 'Check the form.' }
@@ -78,7 +81,8 @@ export async function promiseToPayAction(form: FormData): Promise<FinanceActionR
 
 export async function recordExpenseAction(form: FormData): Promise<FinanceActionResult> {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'expenses.record')
     const parsed = recordExpenseSchema.safeParse(formToObject(form))
     if (!parsed.success) {
       return { ok: false, message: parsed.error.issues[0]?.message ?? 'Check the form.' }

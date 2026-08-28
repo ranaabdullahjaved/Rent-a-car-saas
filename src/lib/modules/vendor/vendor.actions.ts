@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { AppError } from '@/lib/errors'
-import { requireTenant } from '@/lib/tenant'
+import { requireCan, requireTenant } from '@/lib/tenant'
 import * as vendorService from './vendor.service'
 import { createVendorSchema, setOutsourcingSchema } from './vendor.validation'
 
@@ -22,7 +22,8 @@ function failure(err: unknown): VendorActionResult {
 
 export async function createVendorAction(form: FormData): Promise<VendorActionResult> {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'fleet.manage')
     const parsed = createVendorSchema.safeParse(formToObject(form))
     if (!parsed.success) {
       return { ok: false, message: parsed.error.issues[0]?.message ?? 'Check the form.' }
@@ -38,7 +39,8 @@ export async function createVendorAction(form: FormData): Promise<VendorActionRe
 
 export async function setOutsourcingAction(form: FormData): Promise<VendorActionResult> {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'bookings.manage')
     const parsed = setOutsourcingSchema.safeParse(formToObject(form))
     if (!parsed.success) {
       return { ok: false, message: parsed.error.issues[0]?.message ?? 'Check the form.' }

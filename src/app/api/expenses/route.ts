@@ -1,13 +1,14 @@
 import { NextRequest } from 'next/server'
 import { apiError, jsonOk } from '@/lib/api'
-import { requireTenant } from '@/lib/tenant'
+import { requireCan, requireTenant } from '@/lib/tenant'
 import { ValidationError } from '@/lib/errors'
 import * as expenseService from '@/lib/modules/finance/expense.service'
 import { expenseFilterSchema, recordExpenseSchema } from '@/lib/modules/finance/expense.validation'
 
 export async function GET(request: NextRequest) {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'reports.view')
 
     const params = request.nextUrl.searchParams
     const filters = expenseFilterSchema.safeParse({
@@ -26,7 +27,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'expenses.record')
     const parsed = recordExpenseSchema.safeParse(await request.json())
     if (!parsed.success) throw new ValidationError(parsed.error.issues[0]?.message ?? 'Invalid expense')
 

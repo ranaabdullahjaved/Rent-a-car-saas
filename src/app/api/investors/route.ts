@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { apiError, jsonOk } from '@/lib/api'
-import { requireTenant } from '@/lib/tenant'
+import { requireCan, requireTenant } from '@/lib/tenant'
 import { ValidationError } from '@/lib/errors'
 import * as investorService from '@/lib/modules/investor/investor.service'
 import * as agreementService from '@/lib/modules/investor/agreement.service'
@@ -12,7 +12,8 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'investors.view')
     const params = request.nextUrl.searchParams
     const what = params.get('what') ?? 'investors'
 
@@ -51,7 +52,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'investors.manage')
     const body = await request.json()
 
     if (request.nextUrl.searchParams.get('what') === 'agreement') {

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { apiError, jsonOk } from '@/lib/api'
-import { requireTenant } from '@/lib/tenant'
+import { requireCan, requireTenant } from '@/lib/tenant'
 import { ValidationError } from '@/lib/errors'
 import * as fleetService from '@/lib/modules/fleet/fleet.service'
 import { createVehicleSchema, fleetFilterSchema } from '@/lib/modules/fleet/fleet.validation'
@@ -28,7 +28,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { tenantId } = await requireTenant()
+    const { tenantId, role } = await requireTenant()
+    requireCan({ role }, 'fleet.manage')
     const parsed = createVehicleSchema.safeParse(await request.json())
     if (!parsed.success) throw new ValidationError(parsed.error.issues[0]?.message ?? 'Invalid vehicle')
 
