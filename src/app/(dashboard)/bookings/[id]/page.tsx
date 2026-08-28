@@ -8,12 +8,15 @@ import { NotFoundError } from '@/lib/errors'
 import * as bookingService from '@/lib/modules/booking/booking.service'
 import * as paymentService from '@/lib/modules/finance/payment.service'
 import * as incidentService from '@/lib/modules/incident/incident.service'
+import * as handoverService from '@/lib/modules/handover/handover.service'
+import { ANGLE_LABELS, fuelLabel } from '@/lib/modules/handover/handover.validation'
 import { challanTotal, damageNetImpact } from '@/lib/modules/incident/incident.validation'
 import { blocksVehicle } from '@/lib/modules/booking/booking.validation'
 import { formatPKR, money } from '@/lib/money'
 import { requireTenantOrRedirect } from '@/lib/tenant'
 import { MoneyPanel } from './money-panel'
 import { IncidentPanel } from './incident-panel'
+import { HandoverPanel } from './handover-panel'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -54,13 +57,16 @@ export default async function BookingDetailPage({ params }: Props) {
   }
 
   const b = row.booking
-  const [charges, bookingPayments, promises, damages, challans, blockers] = await Promise.all([
+  const [charges, bookingPayments, promises, damages, challans, blockers, handovers, assessment] =
+    await Promise.all([
     bookingService.getBookingCharges(tenantId, b.id),
     paymentService.listPayments(tenantId, b.id),
     paymentService.listPromises(tenantId, b.id),
     incidentService.listDamage(tenantId, { bookingId: b.id }),
     incidentService.listChallans(tenantId, { bookingId: b.id }),
     incidentService.getClosureBlockers(tenantId, b.id),
+    handoverService.listHandovers(tenantId, b.id),
+    handoverService.getReturnAssessment(tenantId, b.id),
   ])
   const overdue = b.endAt < new Date() && !b.actualEndAt && ['dispatched', 'active'].includes(b.status)
 
@@ -281,7 +287,6 @@ export default async function BookingDetailPage({ params }: Props) {
           <section className="rounded-lg border border-dashed p-5">
             <h2 className="mb-2 text-sm font-medium">Not built yet</h2>
             <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
-              <li>Check-out and check-in with photo capture</li>
               <li>Damage, fuel shortfall and challans</li>
               <li>Extending or cancelling from this page</li>
             </ul>
@@ -289,7 +294,94 @@ export default async function BookingDetailPage({ params }: Props) {
         </div>
       </div>
 
+      {handovers.length > 0 && (
+        <section className="mt-4 rounded-lg border p-5">
+          <h2 className="mb-3 text-sm font-medium">Handovers</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {handovers.map((h) => (
+              <div key={String(h.id)} className="rounded-md border p-4">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-sm font-medium">
+                    {h.handoverType === 'checkout' ? 'Checked out' : 'Checked in'}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {h.performedAt.toISOString().slice(0, 16).replace('T', ' ')}
+                  </span>
+                </div>
+                <dl className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground">
+                  <div className="flex justify-between gap-3">
+                    <dt>Odometer</dt>
+                    <dd className="tabular-nums text-foreground">{h.odometer} km</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt>Fuel</dt>
+                    <dd className="text-foreground">{fuelLabel(h.fuelLevelEighths)}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt>Photos</dt>
+                    <dd className="text-foreground">{h.media.length}</dd>
+                  </div>
+                </dl>
+                {h.media.length > 0 && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {h.media.map((m) => ANGLE_LABELS[m.angle] ?? m.angle).join(', ')}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {assessment && (
+            <div className="mt-4 rounded-md border bg-muted/40 p-4">
+              <p className="text-sm font-medium">Proposed on return</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Nothing is charged automatically — add whichever of these apply from the money panel.
+              </p>
+              <dl className="mt-3 flex flex-col gap-1.5 text-sm">
+                <div className="flex justify-between gap-3">
+                  <dt>Driven</dt>
+                  <dd className="tabular-nums">{assessment.kilometresDriven} km</dd>
+                </div>
+                {assessment.extraKilometres > 0 && (
+                  <div className="flex justify-between gap-3">
+                    <dt>Extra kilometres · {assessment.extraKilometres} km</dt>
+                    <dd className="tabular-nums">{formatPKR(assessment.extraKmCharge)}</dd>
+                  </div>
+                )}
+                {assessment.fuelShortfallEighths > 0 && (
+                  <div className="flex justify-between gap-3">
+                    <dt>Fuel short · {assessment.fuelShortfallEighths}/8 of a tank</dt>
+                    <dd className="tabular-nums">{formatPKR(assessment.fuelCharge)}</dd>
+                  </div>
+                )}
+                {assessment.hoursLate > 0 && (
+                  <div className="flex justify-between gap-3">
+                    <dt>Late · {assessment.hoursLate} hour{assessment.hoursLate === 1 ? '' : 's'}</dt>
+                    <dd className="tabular-nums">{formatPKR(assessment.lateCharge)}</dd>
+                  </div>
+                )}
+                <div className="mt-1 flex justify-between gap-3 border-t pt-2 font-medium">
+                  <dt>Suggested total</dt>
+                  <dd className="tabular-nums">{formatPKR(assessment.total)}</dd>
+                </div>
+              </dl>
+            </div>
+          )}
+        </section>
+      )}
+
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <HandoverPanel
+          bookingId={id}
+          hasVehicle={Boolean(b.vehicleId)}
+          stage={
+            handovers.some((h) => h.handoverType === 'checkin')
+              ? 'done'
+              : handovers.some((h) => h.handoverType === 'checkout')
+                ? 'checkin'
+                : 'checkout'
+          }
+        />
         <MoneyPanel bookingId={id} balanceDue={b.balanceDue ?? '0'} />
         <IncidentPanel bookingId={id} vehicleId={b.vehicleId ? String(b.vehicleId) : null} />
       </div>
