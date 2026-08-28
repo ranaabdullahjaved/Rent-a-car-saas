@@ -2,9 +2,32 @@ import postgres from 'postgres'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import * as schema from './schema'
 
-if (!process.env.DATABASE_URL) {
+const rawDatabaseUrl = process.env.DATABASE_URL
+
+// This module is evaluated while Next collects page data during the build, so
+// anything thrown here fails the whole deployment. The checks below are cheap
+// and, crucially, explain what is wrong — an unexplained ERR_INVALID_URL at
+// build time is very hard to trace back to a dashboard setting.
+if (!rawDatabaseUrl) {
   throw new Error('DATABASE_URL is not set')
 }
+if (/^\s*["']|["']\s*$/.test(rawDatabaseUrl)) {
+  throw new Error(
+    'DATABASE_URL is wrapped in quotes. A .env file strips those, but a hosting ' +
+      'dashboard stores the value literally, so the quotes become part of the ' +
+      'connection string. Remove the surrounding quotes.'
+  )
+}
+if (!/^postgres(ql)?:\/\//.test(rawDatabaseUrl.trim())) {
+  throw new Error(
+    'DATABASE_URL must start with postgres:// or postgresql://. Check for a ' +
+      'stray character at the start of the value.'
+  )
+}
+
+// Narrowing from the guard above does not survive into createPool's closure,
+// so re-bind it as a plain string once it is known to be valid.
+const databaseUrl: string = rawDatabaseUrl
 
 const isServerless = process.env.DEPLOYMENT === 'serverless'
 
@@ -13,13 +36,14 @@ const isServerless = process.env.DEPLOYMENT === 'serverless'
 // Prepared statements are per-connection server-side objects, so postgres.js
 // must not use them here or queries fail once traffic is concurrent.
 //
-// This is detected from the URL rather than from DEPLOYMENT so that pointing
-// any environment at the pooler is safe on its own.
-const dbUrl = new URL(process.env.DATABASE_URL!)
-const isPooled = dbUrl.port === '6543' || dbUrl.hostname.includes('pooler')
+// Detected from the connection string rather than from DEPLOYMENT, so that
+// pointing any environment at the pooler is safe on its own — and by matching
+// on the string rather than parsing it as a URL, because new URL() throws on a
+// malformed value and would take the build down with it.
+const isPooled = /:6543(\/|\?|$)/.test(databaseUrl) || databaseUrl.includes('pooler')
 
 function createPool() {
-  return postgres(process.env.DATABASE_URL!, {
+  return postgres(databaseUrl, {
     max: isServerless ? 1 : 10,
     prepare: !isPooled,
     connect_timeout: 10,
@@ -40,9 +64,7 @@ function createPool() {
 
 // Singleton pattern prevents connection pool exhaustion during Next.js hot reload
 declare global {
-  // eslint-disable-next-line no-var
   var __pgPool: ReturnType<typeof postgres> | undefined
-  // eslint-disable-next-line no-var
   var __db: ReturnType<typeof drizzle<typeof schema>> | undefined
 }
 
