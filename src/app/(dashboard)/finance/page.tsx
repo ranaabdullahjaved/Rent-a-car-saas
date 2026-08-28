@@ -3,10 +3,12 @@ import type { Metadata } from 'next'
 import { PageHeader } from '@/components/shared/page-header'
 import * as paymentService from '@/lib/modules/finance/payment.service'
 import { listLedgerEntries } from '@/lib/modules/finance/ledger.service'
+import * as expenseService from '@/lib/modules/finance/expense.service'
 import { categoryLabel } from '@/lib/modules/finance/ledger.categories'
 import { ZERO, addMoney, formatPKR, money, subtractMoney, type Money } from '@/lib/money'
 import { requireTenantOrRedirect } from '@/lib/tenant'
 import { cn } from '@/lib/utils'
+import { ExpenseForm } from './expense-form'
 
 export const metadata: Metadata = { title: 'Finance' }
 
@@ -23,9 +25,11 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 export default async function FinancePage() {
   const { tenantId } = await requireTenantOrRedirect()
 
-  const [entries, receivables] = await Promise.all([
+  const [entries, receivables, expenseRows, options] = await Promise.all([
     listLedgerEntries(tenantId, 100),
     paymentService.getReceivables(tenantId),
+    expenseService.listExpenses(tenantId),
+    expenseService.getExpenseFormOptions(tenantId),
   ])
 
   // Totals are summed through the Money type rather than by casting to number,
@@ -50,6 +54,15 @@ export default async function FinancePage() {
       <PageHeader
         title="Finance"
         description="Every rupee that has moved, and what is still owed."
+        actions={
+          <ExpenseForm
+            options={{
+              vehicles: options.vehicles.map((v) => ({ ...v, id: String(v.id) })),
+              employees: options.employees.map((e) => ({ ...e, id: String(e.id) })),
+              vendors: options.vendors.map((v) => ({ ...v, id: String(v.id) })),
+            }}
+          />
+        }
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -79,6 +92,46 @@ export default async function FinancePage() {
                 <span className="tabular-nums">{formatPKR(amount)}</span>
               </div>
             ))}
+          </div>
+        </section>
+      )}
+
+      {expenseRows.length > 0 && (
+        <section className="mt-6">
+          <h2 className="mb-3 text-sm font-medium">Expenses</h2>
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-left">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">Date</th>
+                  <th className="px-4 py-2.5 font-medium">Category</th>
+                  <th className="px-4 py-2.5 font-medium">Attributed to</th>
+                  <th className="px-4 py-2.5 font-medium">Paid to</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {expenseRows.map((e) => (
+                  <tr key={String(e.id)} className="border-t">
+                    <td className="px-4 py-2.5 tabular-nums">{e.expenseDate}</td>
+                    <td className="px-4 py-2.5">{categoryLabel(e.category)}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">
+                      {e.vehicleRegistration ? (
+                        <Link href={`/fleet/${e.vehicleId}`} className="underline underline-offset-4">
+                          {e.vehicleRegistration}
+                        </Link>
+                      ) : (
+                        (e.employeeName ?? e.vendorName ?? 'overhead')
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{e.paidTo ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums">
+                      {formatPKR(money(e.amount))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
       )}

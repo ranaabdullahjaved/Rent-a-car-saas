@@ -3,8 +3,10 @@
 import { revalidatePath } from 'next/cache'
 import { AppError } from '@/lib/errors'
 import { requireTenant } from '@/lib/tenant'
+import * as expenseService from './expense.service'
 import * as paymentService from './payment.service'
 import { promiseToPaySchema, recordChargeSchema, recordPaymentSchema } from './finance.validation'
+import { recordExpenseSchema } from './expense.validation'
 
 export type FinanceActionResult = { ok: true } | { ok: false; message: string }
 
@@ -68,6 +70,23 @@ export async function promiseToPayAction(form: FormData): Promise<FinanceActionR
 
     await paymentService.promiseToPay(tenantId, parsed.data)
     revalidateBooking(String(parsed.data.bookingId))
+    return { ok: true }
+  } catch (err) {
+    return failure(err)
+  }
+}
+
+export async function recordExpenseAction(form: FormData): Promise<FinanceActionResult> {
+  try {
+    const { tenantId } = await requireTenant()
+    const parsed = recordExpenseSchema.safeParse(formToObject(form))
+    if (!parsed.success) {
+      return { ok: false, message: parsed.error.issues[0]?.message ?? 'Check the form.' }
+    }
+
+    await expenseService.recordExpense(tenantId, parsed.data)
+    revalidatePath('/finance')
+    if (parsed.data.vehicleId) revalidatePath(`/fleet/${parsed.data.vehicleId}`)
     return { ok: true }
   } catch (err) {
     return failure(err)
