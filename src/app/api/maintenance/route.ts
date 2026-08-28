@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { requireTenant, TenantError } from '@/lib/tenant'
-import { AppError, ValidationError } from '@/lib/errors'
+import { NextRequest } from 'next/server'
+import { apiError, jsonOk } from '@/lib/api'
+import { requireTenant } from '@/lib/tenant'
+import { ValidationError } from '@/lib/errors'
 import * as maintenanceService from '@/lib/modules/maintenance/maintenance.service'
 import { createMaintenanceRecordSchema } from '@/lib/modules/maintenance/maintenance.validation'
 
@@ -8,9 +9,9 @@ export async function GET() {
   try {
     const { tenantId } = await requireTenant()
     const records = await maintenanceService.listMaintenanceRecords(tenantId)
-    return NextResponse.json({ ok: true, data: records })
+    return jsonOk(records)
   } catch (err) {
-    return errorResponse(err)
+    return apiError(err)
   }
 }
 
@@ -21,24 +22,8 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) throw new ValidationError(parsed.error.message)
 
     const record = await maintenanceService.recordMaintenance(tenantId, parsed.data)
-    return NextResponse.json({ ok: true, data: record }, { status: 201 })
+    return jsonOk(record, 201)
   } catch (err) {
-    return errorResponse(err)
+    return apiError(err)
   }
-}
-
-function errorResponse(err: unknown) {
-  if (err instanceof TenantError) {
-    return NextResponse.json(
-      { ok: false, error: { code: 'UNAUTHENTICATED', message: err.message } },
-      { status: 401 }
-    )
-  }
-  if (err instanceof AppError) {
-    return NextResponse.json(
-      { ok: false, error: { code: err.code, message: err.message } },
-      { status: err.statusCode }
-    )
-  }
-  throw err
 }

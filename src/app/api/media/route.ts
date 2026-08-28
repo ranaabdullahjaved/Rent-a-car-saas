@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { z } from 'zod'
-import { requireTenant, TenantError } from '@/lib/tenant'
-import { AppError, ValidationError } from '@/lib/errors'
+import { apiError, jsonOk } from '@/lib/api'
+import { requireTenant } from '@/lib/tenant'
+import { ValidationError } from '@/lib/errors'
 import { requestUploadUrl } from '@/lib/modules/media/media.service'
 
 const requestUploadSchema = z.object({
@@ -18,24 +19,8 @@ export async function POST(request: NextRequest) {
 
     const { bookingId, fileName, contentType } = parsed.data
     const upload = await requestUploadUrl(tenantId, bookingId, fileName, contentType)
-    return NextResponse.json({ ok: true, data: upload })
+    return jsonOk(upload)
   } catch (err) {
-    return errorResponse(err)
+    return apiError(err)
   }
-}
-
-function errorResponse(err: unknown) {
-  if (err instanceof TenantError) {
-    return NextResponse.json(
-      { ok: false, error: { code: 'UNAUTHENTICATED', message: err.message } },
-      { status: 401 }
-    )
-  }
-  if (err instanceof AppError) {
-    return NextResponse.json(
-      { ok: false, error: { code: err.code, message: err.message } },
-      { status: err.statusCode }
-    )
-  }
-  throw err
 }

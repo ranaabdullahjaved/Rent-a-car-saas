@@ -37,6 +37,21 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+/**
+ * Raised when a request has no valid session, or the signed-in user is not
+ * usable — no tenant, deactivated, or deleted.
+ *
+ * Defined here rather than alongside requireTenant so that consumers which
+ * only need the type (the API error mapper, its tests) don't pull the
+ * database client into their module graph.
+ */
+export class TenantError extends AppError {
+  constructor(message: string) {
+    super(message, 'UNAUTHENTICATED', 401)
+    this.name = 'TenantError'
+  }
+}
+
 // Converts Postgres error codes to typed application errors
 export function fromDbError(err: unknown): AppError {
   const pgErr = err as { code?: string; message?: string }
