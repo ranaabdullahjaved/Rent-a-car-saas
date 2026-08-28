@@ -8,20 +8,44 @@ const rawDatabaseUrl = process.env.DATABASE_URL
 // anything thrown here fails the whole deployment. The checks below are cheap
 // and, crucially, explain what is wrong — an unexplained ERR_INVALID_URL at
 // build time is very hard to trace back to a dashboard setting.
+/**
+ * Describes the shape of a connection string without revealing it.
+ *
+ * Letters become 'a' and digits '9'; punctuation is kept. That is enough to
+ * spot a `psql ` prefix, a stray `DATABASE_URL=`, wrapping quotes, an embedded
+ * space or a missing colon — while carrying none of the secret, so a hosting
+ * platform's log redaction has nothing to match and will not blank it out.
+ */
+function describeShape(value: string): string {
+  const masked = value.replace(/[A-Za-z]/g, 'a').replace(/[0-9]/g, '9')
+  const head = masked.slice(0, 48)
+  const notable: string[] = []
+  if (/^\s|\s$/.test(value)) notable.push('surrounding whitespace')
+  if (/["']/.test(value)) notable.push('quote characters')
+  if (/\s/.test(value.trim())) notable.push('an embedded space or newline')
+  if (value.includes('#')) notable.push('a # character')
+  if (value.includes('<') || value.includes('>')) notable.push('angle brackets')
+  if (!value.includes('@')) notable.push('no @ separating credentials from host')
+  return (
+    `length=${value.length}, shape="${head}${masked.length > 48 ? '…' : ''}"` +
+    (notable.length ? `, contains ${notable.join(', ')}` : '')
+  )
+}
+
 if (!rawDatabaseUrl) {
   throw new Error('DATABASE_URL is not set')
 }
-if (/^\s*["']|["']\s*$/.test(rawDatabaseUrl)) {
+if (!/^postgres(ql)?:\/\//.test(rawDatabaseUrl)) {
   throw new Error(
-    'DATABASE_URL is wrapped in quotes. A .env file strips those, but a hosting ' +
-      'dashboard stores the value literally, so the quotes become part of the ' +
-      'connection string. Remove the surrounding quotes.'
+    'DATABASE_URL must begin with postgres:// or postgresql:// with nothing ' +
+      'before it — no quotes, no "psql ", no "DATABASE_URL=" prefix. ' +
+      `Got ${describeShape(rawDatabaseUrl)}`
   )
 }
-if (!/^postgres(ql)?:\/\//.test(rawDatabaseUrl.trim())) {
+if (/\s/.test(rawDatabaseUrl)) {
   throw new Error(
-    'DATABASE_URL must start with postgres:// or postgresql://. Check for a ' +
-      'stray character at the start of the value.'
+    'DATABASE_URL contains a space or line break. ' +
+      `Got ${describeShape(rawDatabaseUrl)}`
   )
 }
 
