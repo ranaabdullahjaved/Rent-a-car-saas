@@ -1,4 +1,5 @@
-import { pgTable, bigserial, bigint, text, date, integer, timestamp } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { pgTable, bigserial, bigint, text, date, integer, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
 import { tenants } from './tenants'
 
 export const customers = pgTable('customers', {
@@ -28,7 +29,15 @@ export const customers = pgTable('customers', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
-})
+}, (t) => [
+  // One record per CNIC per tenant. Two records for one person split their
+  // booking history and outstanding dues, which is exactly what the
+  // receivables view must not do. Partial because CNIC is optional — walk-in
+  // customers are often taken without one — and NULLs must not collide.
+  uniqueIndex('customers_tenant_cnic_unique')
+    .on(t.tenantId, t.cnic)
+    .where(sql`${t.cnic} is not null and ${t.deletedAt} is null`),
+])
 
 export type Customer = typeof customers.$inferSelect
 export type NewCustomer = typeof customers.$inferInsert

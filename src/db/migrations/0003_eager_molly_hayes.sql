@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "customers_tenant_cnic_unique" ON "customers" USING btree ("tenant_id","cnic") WHERE "customers"."cnic" is not null and "customers"."deleted_at" is null;
