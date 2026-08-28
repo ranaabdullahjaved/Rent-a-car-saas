@@ -35,7 +35,13 @@ export const auth = betterAuth({
       maxAge: 60 * 60 * 24 * 7, // 7 days
     },
   },
-  trustedOrigins: [process.env.BETTER_AUTH_URL ?? 'http://localhost:3000'],
+  trustedOrigins: [
+    process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
+    // Vercel sets this automatically on every deployment (including
+    // preview deployments, which get a fresh URL each time) — without it,
+    // auth would only work on whichever domain BETTER_AUTH_URL points to.
+    ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
+  ],
   advanced: {
     database: {
       // users.id is a bigserial in our schema — let Postgres generate it.
