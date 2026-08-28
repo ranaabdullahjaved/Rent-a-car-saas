@@ -270,3 +270,54 @@ export async function countOverdue(tenantId: bigint) {
     )
   return row?.count ?? 0
 }
+
+/**
+ * Everything the availability timeline needs for a window: every vehicle in
+ * the fleet, and every booking that overlaps the window. Cancelled bookings
+ * are omitted; tentative ones are included so the timeline can show them as
+ * holds that do not actually block.
+ */
+export async function listBookingsForTimeline(
+  tenantId: bigint,
+  windowStart: Date,
+  windowEnd: Date
+) {
+  const [fleet, spans] = await Promise.all([
+    db
+      .select({
+        id: vehicles.id,
+        registrationNo: vehicles.registrationNo,
+        make: vehicles.make,
+        model: vehicles.model,
+        status: vehicles.status,
+      })
+      .from(vehicles)
+      .where(and(eq(vehicles.tenantId, tenantId), isNull(vehicles.deletedAt)))
+      .orderBy(asc(vehicles.registrationNo)),
+    db
+      .select({
+        id: bookings.id,
+        vehicleId: bookings.vehicleId,
+        bookingNo: bookings.bookingNo,
+        status: bookings.status,
+        startAt: bookings.startAt,
+        endAt: bookings.endAt,
+        bufferMinutes: bookings.bufferMinutes,
+        customerName: customers.fullName,
+      })
+      .from(bookings)
+      .innerJoin(customers, eq(customers.id, bookings.customerId))
+      .where(
+        and(
+          scope(tenantId),
+          sql`${bookings.vehicleId} is not null`,
+          sql`${bookings.status} != 'cancelled'`,
+          lt(bookings.startAt, sql`${windowEnd.toISOString()}::timestamptz`),
+          sql`(${bookings.endAt} + make_interval(mins => coalesce(${bookings.bufferMinutes}, 0))) > ${windowStart.toISOString()}::timestamptz`
+        )
+      )
+      .orderBy(asc(bookings.startAt)),
+  ])
+
+  return { fleet, spans }
+}

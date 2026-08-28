@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -26,13 +26,21 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-export function BookingForm({ customers }: { customers: Customer[] }) {
+type BookingFormProps = {
+  customers: Customer[]
+  /** Prefill from the timeline: clicked vehicle and day. */
+  initialVehicleId?: string
+  initialStart?: string
+  initialEnd?: string
+}
+
+export function BookingForm({ customers, initialVehicleId, initialStart, initialEnd }: BookingFormProps) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
-  const [startAt, setStartAt] = useState('')
-  const [endAt, setEndAt] = useState('')
+  const [startAt, setStartAt] = useState(initialStart ?? '')
+  const [endAt, setEndAt] = useState(initialEnd ?? '')
   const [bufferMinutes, setBufferMinutes] = useState('0')
   const [bookingType, setBookingType] = useState('self_drive')
   const [dailyRate, setDailyRate] = useState('')
@@ -42,6 +50,17 @@ export function BookingForm({ customers }: { customers: Customer[] }) {
 
   const [available, setAvailable] = useState<Vehicle[] | null>(null)
   const [checking, setChecking] = useState(false)
+
+  // Arriving from the timeline with a day already chosen: check availability
+  // straight away so the agent lands one click from confirming.
+  const autoChecked = useRef(false)
+  useEffect(() => {
+    if (initialStart && initialEnd && !autoChecked.current) {
+      autoChecked.current = true
+      void checkAvailability()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const quote = useMemo(() => {
     if (!startAt || !endAt) return null
@@ -209,7 +228,15 @@ export function BookingForm({ customers }: { customers: Customer[] }) {
           </p>
         ) : (
           <Field label="Available vehicles">
-            <select name="vehicleId" className={selectClass} defaultValue="">
+            <select
+              name="vehicleId"
+              className={selectClass}
+              defaultValue={
+                initialVehicleId && available.some((v) => v.id === initialVehicleId)
+                  ? initialVehicleId
+                  : ''
+              }
+            >
               <option value="">No vehicle yet (tentative)</option>
               {available.map((v) => (
                 <option key={v.id} value={v.id}>

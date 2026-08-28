@@ -55,9 +55,14 @@ export default async function BookingsPage({ searchParams }: PageProps) {
             : `${summary.total} booking${summary.total === 1 ? '' : 's'}${summary.overdue ? ` · ${summary.overdue} overdue` : ''}`
         }
         actions={
-          <Button asChild>
-            <Link href="/bookings/new">New booking</Link>
-          </Button>
+          <>
+            <Button asChild variant="outline">
+              <Link href="/bookings/timeline">Timeline</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/bookings/new">New booking</Link>
+            </Button>
+          </>
         }
       />
 
