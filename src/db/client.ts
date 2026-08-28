@@ -8,9 +8,20 @@ if (!process.env.DATABASE_URL) {
 
 const isServerless = process.env.DEPLOYMENT === 'serverless'
 
+// Supabase's pooler (PgBouncer) runs on 6543 in transaction-pooling mode,
+// where a connection is handed to a different client between statements.
+// Prepared statements are per-connection server-side objects, so postgres.js
+// must not use them here or queries fail once traffic is concurrent.
+//
+// This is detected from the URL rather than from DEPLOYMENT so that pointing
+// any environment at the pooler is safe on its own.
+const dbUrl = new URL(process.env.DATABASE_URL!)
+const isPooled = dbUrl.port === '6543' || dbUrl.hostname.includes('pooler')
+
 function createPool() {
   return postgres(process.env.DATABASE_URL!, {
     max: isServerless ? 1 : 10,
+    prepare: !isPooled,
     connect_timeout: 10,
     idle_timeout: 1800,
     ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
