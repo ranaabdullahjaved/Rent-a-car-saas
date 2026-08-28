@@ -178,12 +178,19 @@ export async function getOperationsToday(tenantId: bigint): Promise<OperationsTo
   const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
   const dayEnd = new Date(dayStart.getTime() + 86_400_000)
 
+  // ISO strings with an explicit cast, never a Date. A raw sql fragment has no
+  // column type to infer from, so the driver receives an unsupported parameter
+  // and the whole query fails — the same trap as the booking conflict lookup.
+  const startIso = dayStart.toISOString()
+  const endIso = dayEnd.toISOString()
+  const nowIso = now.toISOString()
+
   const [bookingCounts, fleetCounts] = await Promise.all([
     db
       .select({
-        departing: sql<number>`count(*) filter (where ${bookings.startAt} >= ${dayStart} and ${bookings.startAt} < ${dayEnd})::int`,
-        returning: sql<number>`count(*) filter (where ${bookings.endAt} >= ${dayStart} and ${bookings.endAt} < ${dayEnd})::int`,
-        overdue: sql<number>`count(*) filter (where ${bookings.endAt} < ${now} and ${bookings.actualEndAt} is null and ${bookings.status} in ('dispatched','active'))::int`,
+        departing: sql<number>`count(*) filter (where ${bookings.startAt} >= ${startIso}::timestamptz and ${bookings.startAt} < ${endIso}::timestamptz)::int`,
+        returning: sql<number>`count(*) filter (where ${bookings.endAt} >= ${startIso}::timestamptz and ${bookings.endAt} < ${endIso}::timestamptz)::int`,
+        overdue: sql<number>`count(*) filter (where ${bookings.endAt} < ${nowIso}::timestamptz and ${bookings.actualEndAt} is null and ${bookings.status} in ('dispatched','active'))::int`,
       })
       .from(bookings)
       .where(and(eq(bookings.tenantId, tenantId), isNull(bookings.deletedAt))),
