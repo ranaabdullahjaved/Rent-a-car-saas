@@ -6,8 +6,16 @@ declare const __money: unique symbol
 export type Money = string & { readonly [__money]: true }
 
 export function money(value: string | number | Decimal): Money {
-  const d = new Decimal(value)
-  if (d.isNaN()) throw new Error(`Invalid money value: ${value}`)
+  let d: Decimal
+  try {
+    d = new Decimal(value)
+  } catch {
+    // decimal.js throws its own DecimalError on unparseable input, which
+    // would surface to callers instead of our message. Normalise it.
+    throw new Error(`Invalid money value: ${String(value)}`)
+  }
+  // Catches NaN and ±Infinity, both of which Decimal accepts without throwing.
+  if (!d.isFinite()) throw new Error(`Invalid money value: ${String(value)}`)
   return d.toFixed(2) as Money
 }
 
