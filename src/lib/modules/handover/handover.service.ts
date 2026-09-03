@@ -77,7 +77,7 @@ export async function recordHandover(tenantId: bigint, input: RecordHandoverInpu
   const missing = missingAngles(input.capturedAngles)
   if (missing.length > 0) {
     throw new AppError(
-      `Photograph every required angle first. Still missing: ${missing.join(', ')}.`,
+      `Photograph every required angle (or record a walkaround video instead). Still missing: ${missing.join(', ')}.`,
       'MISSING_ANGLES',
       422
     )

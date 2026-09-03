@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 if (!process.env.R2_ACCOUNT_ID) throw new Error('R2_ACCOUNT_ID is not set')
@@ -36,4 +36,12 @@ export function buildMediaKey(
 ): string {
   const date = new Date().toISOString().split('T')[0]
   return `tenants/${tenantId}/bookings/${bookingId}/${date}/${fileName}`
+}
+
+export async function getPresignedViewUrl(key: string, expiresIn = 3600): Promise<string> {
+  const command = new GetObjectCommand({
+    Bucket: process.env.R2_BUCKET_NAME!,
+    Key: key,
+  })
+  return getSignedUrl(r2, command, { expiresIn })
 }

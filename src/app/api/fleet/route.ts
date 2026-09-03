@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { z } from 'zod'
 import { apiError, jsonOk } from '@/lib/api'
 import { requireCan, requireTenant } from '@/lib/tenant'
 import { ValidationError } from '@/lib/errors'
@@ -26,14 +27,23 @@ export async function GET(request: NextRequest) {
   }
 }
 
+const mediaEntrySchema = z.object({
+  filePath: z.string().min(1),
+  mediaType: z.enum(['photo', 'video']),
+  mimeType: z.string().min(1),
+})
+
 export async function POST(request: NextRequest) {
   try {
     const { tenantId, role } = await requireTenant()
     requireCan({ role }, 'fleet.manage')
-    const parsed = createVehicleSchema.safeParse(await request.json())
+    const body = await request.json()
+    const parsed = createVehicleSchema.safeParse(body)
     if (!parsed.success) throw new ValidationError(parsed.error.issues[0]?.message ?? 'Invalid vehicle')
+    const media = z.array(mediaEntrySchema).default([]).safeParse(body?.media ?? [])
+    if (!media.success) throw new ValidationError('Invalid media entries')
 
-    const vehicle = await fleetService.createVehicle(tenantId, parsed.data)
+    const vehicle = await fleetService.createVehicle(tenantId, parsed.data, media.data)
     return jsonOk(vehicle, 201)
   } catch (err) {
     return apiError(err)

@@ -16,6 +16,20 @@ function formToObject(form: FormData) {
   )
 }
 
+/** filePath::mediaType::mimeType entries, pipe-separated by the form. */
+function parseMedia(form: FormData) {
+  const raw = form.get('uploadedMedia')
+  if (typeof raw !== 'string' || !raw.trim()) return []
+  return raw
+    .split('|')
+    .filter(Boolean)
+    .map((entry) => {
+      const [filePath, mediaType, mimeType] = entry.split('::')
+      return { filePath: filePath ?? '', mediaType: mediaType ?? 'photo', mimeType: mimeType ?? 'image/jpeg' }
+    })
+    .filter((m) => m.filePath)
+}
+
 function failure(err: unknown): FleetActionResult {
   if (err instanceof AppError) return { ok: false, message: err.message }
   console.error('fleet action failed', err)
@@ -34,7 +48,7 @@ export async function createVehicleAction(form: FormData): Promise<FleetActionRe
       return { ok: false, message: issue?.message ?? 'Check the form.', field: String(issue?.path[0] ?? '') }
     }
 
-    const vehicle = await fleetService.createVehicle(tenantId, parsed.data)
+    const vehicle = await fleetService.createVehicle(tenantId, parsed.data, parseMedia(form))
     revalidatePath('/fleet')
     return { ok: true, id: String(vehicle!.id) }
   } catch (err) {
@@ -54,6 +68,8 @@ export async function updateVehicleAction(id: string, form: FormData): Promise<F
     }
 
     await fleetService.updateVehicle(tenantId, BigInt(id), parsed.data)
+    const extra = parseMedia(form)
+    if (extra.length > 0) await fleetService.addVehicleMedia(tenantId, BigInt(id), extra)
     revalidatePath('/fleet')
     revalidatePath(`/fleet/${id}`)
     return { ok: true, id }

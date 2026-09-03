@@ -100,9 +100,14 @@ export const uploadRequestSchema = z.object({
 export type RecordHandoverInput = z.infer<typeof recordHandoverSchema>
 export type UploadRequestInput = z.infer<typeof uploadRequestSchema>
 
-/** Which required angles are still missing. */
+/**
+ * Which required angles are still missing. A walkaround video covers the car
+ * from every side in one take, so capturing one stands in for all eight
+ * photos — they become optional extras.
+ */
 export function missingAngles(captured: string[]): string[] {
   const seen = new Set(captured)
+  if (seen.has('walkaround_video')) return []
   return REQUIRED_ANGLES.filter((a) => !seen.has(a))
 }
 

@@ -180,7 +180,25 @@ export async function setStatus(tenantId: bigint, id: bigint, status: string) {
 }
 
 export async function cancelBooking(tenantId: bigint, id: bigint, reason: string) {
-  await getBooking(tenantId, id)
+  const { booking } = await getBooking(tenantId, id)
+
+  // Cancelling only makes sense before the car leaves. Once it has been
+  // checked out, the rental happened — check it back in and settle the money
+  // instead of pretending it never did.
+  if (booking.actualStartAt) {
+    throw new AppError(
+      'This booking has already been checked out. Check the vehicle in and settle it instead of cancelling.',
+      'ALREADY_CHECKED_OUT',
+      409
+    )
+  }
+  if (booking.status === 'cancelled') {
+    throw new AppError('This booking is already cancelled.', 'ALREADY_CANCELLED', 409)
+  }
+  if (booking.status === 'completed') {
+    throw new AppError('A completed booking cannot be cancelled.', 'ALREADY_COMPLETED', 409)
+  }
+
   return bookingRepository.updateBooking(tenantId, id, {
     status: 'cancelled',
     cancellationReason: reason,

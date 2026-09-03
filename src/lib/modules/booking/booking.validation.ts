@@ -42,7 +42,7 @@ const optionalInt = z
   .transform((v) => (v === '' || v === undefined || v === null ? null : Number(v)))
   .refine((v) => v === null || (Number.isInteger(v) && v >= 0), 'Must be a whole number')
 
-export const createBookingSchema = z
+const bookingBaseSchema = z
   .object({
     customerId: requiredId,
     vehicleId: optionalId,
@@ -80,7 +80,25 @@ export const createBookingSchema = z
     path: ['vehicleId'],
   })
 
-export const updateBookingSchema = createBookingSchema
+/**
+ * Five minutes of grace so "pick up right now" doesn't fail on the seconds
+ * that pass between filling the form and submitting it.
+ */
+const PICKUP_GRACE_MS = 5 * 60 * 1000
+
+// New bookings must be in the future. Edits are exempt (updateBookingSchema
+// uses the base): a booking taken last week legitimately has a past pick-up.
+export const createBookingSchema = bookingBaseSchema
+  .refine((v) => v.startAt.getTime() > Date.now() - PICKUP_GRACE_MS, {
+    message: 'The pick-up time must be in the future',
+    path: ['startAt'],
+  })
+  .refine((v) => v.endAt.getTime() > Date.now(), {
+    message: 'The return time must be in the future',
+    path: ['endAt'],
+  })
+
+export const updateBookingSchema = bookingBaseSchema
 
 export const bookingFilterSchema = z.object({
   q: z.string().trim().max(60).optional(),

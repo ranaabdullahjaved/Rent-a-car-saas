@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { blocksVehicle, createBookingSchema } from './booking.validation'
+import { blocksVehicle, createBookingSchema, updateBookingSchema } from './booking.validation'
+
+// Relative dates: createBookingSchema rejects the past, so fixed fixtures
+// would start failing the day they age out.
+const days = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString()
 
 const base = {
   customerId: '1',
   vehicleId: '1',
-  startAt: '2026-09-01T10:00:00Z',
-  endAt: '2026-09-08T10:00:00Z',
+  startAt: days(7),
+  endAt: days(14),
   dailyRate: '4500',
 }
 
@@ -27,8 +31,8 @@ describe('date range', () => {
   it('rejects a return before the pick-up', () => {
     const parsed = createBookingSchema.safeParse({
       ...base,
-      startAt: '2026-09-08T10:00:00Z',
-      endAt: '2026-09-01T10:00:00Z',
+      startAt: days(14),
+      endAt: days(7),
     })
     expect(parsed.success).toBe(false)
     if (!parsed.success) expect(parsed.error.issues[0]?.path).toEqual(['endAt'])
@@ -38,6 +42,34 @@ describe('date range', () => {
     expect(
       createBookingSchema.safeParse({ ...base, endAt: base.startAt }).success
     ).toBe(false)
+  })
+
+  it('rejects a pick-up in the past on a new booking', () => {
+    const parsed = createBookingSchema.safeParse({ ...base, startAt: days(-2) })
+    expect(parsed.success).toBe(false)
+    if (!parsed.success) {
+      expect(parsed.error.issues.map((i) => i.path[0])).toContain('startAt')
+    }
+  })
+
+  it('rejects a return in the past on a new booking', () => {
+    const parsed = createBookingSchema.safeParse({ ...base, startAt: days(-9), endAt: days(-2) })
+    expect(parsed.success).toBe(false)
+    if (!parsed.success) {
+      expect(parsed.error.issues.map((i) => i.path[0])).toContain('endAt')
+    }
+  })
+
+  it('gives a few minutes of grace for a pick-up happening right now', () => {
+    const justNow = new Date(Date.now() - 60_000).toISOString()
+    expect(createBookingSchema.safeParse({ ...base, startAt: justNow }).success).toBe(true)
+  })
+
+  it('lets an edit keep dates that are now in the past', () => {
+    // A booking taken last week has a past pick-up; editing it must not fail.
+    expect(
+      updateBookingSchema.safeParse({ ...base, startAt: days(-9), endAt: days(-2) }).success
+    ).toBe(true)
   })
 })
 

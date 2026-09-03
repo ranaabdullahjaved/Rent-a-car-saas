@@ -48,6 +48,11 @@ describe('required angles', () => {
   it('demands all eight from an empty capture', () => {
     expect(missingAngles([])).toHaveLength(8)
   })
+
+  it('accepts a walkaround video in place of all eight photos', () => {
+    expect(missingAngles(['walkaround_video'])).toEqual([])
+    expect(missingAngles(['walkaround_video', 'front_left'])).toEqual([])
+  })
 })
 
 describe('kilometres', () => {

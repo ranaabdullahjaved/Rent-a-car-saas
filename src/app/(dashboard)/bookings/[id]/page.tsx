@@ -17,6 +17,7 @@ import { requireTenantOrRedirect } from '@/lib/tenant'
 import { MoneyPanel } from './money-panel'
 import { IncidentPanel } from './incident-panel'
 import { HandoverPanel } from './handover-panel'
+import { CancelBookingButton } from './cancel-booking-button'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -76,9 +77,14 @@ export default async function BookingDetailPage({ params }: Props) {
         title={b.bookingNo}
         description={`${row.customerName} · ${row.customerPhone}`}
         actions={
-          <Button asChild variant="outline">
-            <Link href="/bookings">Back to bookings</Link>
-          </Button>
+          <div className="flex items-start gap-2">
+            {!b.actualStartAt && ['tentative', 'confirmed'].includes(b.status) && (
+              <CancelBookingButton bookingId={String(b.id)} />
+            )}
+            <Button asChild variant="outline">
+              <Link href="/bookings">Back to bookings</Link>
+            </Button>
+          </div>
         }
       />
 
@@ -287,8 +293,7 @@ export default async function BookingDetailPage({ params }: Props) {
           <section className="rounded-lg border border-dashed p-5">
             <h2 className="mb-2 text-sm font-medium">Not built yet</h2>
             <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
-              <li>Damage, fuel shortfall and challans</li>
-              <li>Extending or cancelling from this page</li>
+              <li>Extending a booking from this page</li>
             </ul>
           </section>
         </div>

@@ -64,7 +64,10 @@ export function HandoverPanel({
   }
 
   const capturedAngles = new Set(captured.map((c) => c.angle))
-  const missing = REQUIRED_ANGLES.filter((a) => !capturedAngles.has(a))
+  const hasVideo = capturedAngles.has('walkaround_video')
+  // A walkaround video covers the car from every side in one take, so it
+  // stands in for all eight photos (mirrors missingAngles on the server).
+  const missing = hasVideo ? [] : REQUIRED_ANGLES.filter((a) => !capturedAngles.has(a))
 
   async function onPick(angle: string, file: File | undefined) {
     if (!file) return
@@ -103,7 +106,7 @@ export function HandoverPanel({
         },
       ])
     } catch {
-      setError(`Could not upload the ${ANGLE_LABELS[angle] ?? angle} photo. Try again.`)
+      setError(`Could not upload ${ANGLE_LABELS[angle] ?? angle}. Try again.`)
     } finally {
       setUploading(null)
     }
@@ -146,6 +149,35 @@ export function HandoverPanel({
       </p>
 
       <form onSubmit={onSubmit}>
+        <div className="mb-3">
+          <input
+            ref={(el) => {
+              inputs.current['walkaround_video'] = el
+            }}
+            type="file"
+            accept="video/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => onPick('walkaround_video', e.target.files?.[0])}
+          />
+          <button
+            type="button"
+            onClick={() => inputs.current['walkaround_video']?.click()}
+            disabled={uploading === 'walkaround_video'}
+            className={cn(
+              'flex w-full items-center justify-center gap-2 rounded-md border px-3 py-3 text-sm transition-colors',
+              hasVideo
+                ? 'border-emerald-500/50 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                : 'border-dashed text-muted-foreground hover:bg-muted/50'
+            )}
+          >
+            <span aria-hidden>{uploading === 'walkaround_video' ? '…' : hasVideo ? '✓' : '▶'}</span>
+            {hasVideo
+              ? 'Walkaround video recorded — photos below are now optional'
+              : 'Record a walkaround video instead of the 8 photos'}
+          </button>
+        </div>
+
         <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {REQUIRED_ANGLES.map((angle) => {
             const done = capturedAngles.has(angle)
@@ -190,8 +222,10 @@ export function HandoverPanel({
           )}
         >
           {missing.length
-            ? `${missing.length} of ${REQUIRED_ANGLES.length} still to photograph`
-            : `All ${REQUIRED_ANGLES.length} angles captured`}
+            ? `${missing.length} of ${REQUIRED_ANGLES.length} still to photograph — or record one walkaround video`
+            : hasVideo
+              ? 'Walkaround video captured — ready to go'
+              : `All ${REQUIRED_ANGLES.length} angles captured`}
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -237,7 +271,7 @@ export function HandoverPanel({
           </Button>
           {missing.length > 0 && (
             <span className="ml-3 text-xs text-muted-foreground">
-              Photograph the remaining angles to continue.
+              Photograph the remaining angles — or record a walkaround video — to continue.
             </span>
           )}
         </div>

@@ -49,3 +49,20 @@ export const vehicles = pgTable('vehicles', {
 
 export type Vehicle = typeof vehicles.$inferSelect
 export type NewVehicle = typeof vehicles.$inferInsert
+
+/**
+ * Reference photos and video captured when the vehicle is registered — what a
+ * customer is shown at booking time. Distinct from handover_media, which
+ * documents condition at a specific check-out or check-in.
+ */
+export const vehicleMedia = pgTable('vehicle_media', {
+  id: bigserial('id', { mode: 'bigint' }).primaryKey(),
+  tenantId: bigint('tenant_id', { mode: 'bigint' }).notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  vehicleId: bigint('vehicle_id', { mode: 'bigint' }).notNull().references(() => vehicles.id, { onDelete: 'cascade' }),
+  mediaType: text('media_type').notNull(), // 'photo' | 'video'
+  filePath: text('file_path').notNull(),
+  mimeType: text('mime_type'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export type VehicleMedia = typeof vehicleMedia.$inferSelect
